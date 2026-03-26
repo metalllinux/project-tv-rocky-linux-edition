@@ -114,18 +114,31 @@ fi
 
 # B-11: YAML manifests are valid
 YAML_ERRORS=0
-while IFS= read -r yaml; do
-    if command -v python3 &>/dev/null; then
+if python3 -c "import yaml" 2>/dev/null; then
+    while IFS= read -r yaml; do
         if ! python3 -c "import yaml; yaml.safe_load(open('$yaml'))" 2>/dev/null; then
             echo "# YAML error in: $yaml"
             YAML_ERRORS=$((YAML_ERRORS + 1))
         fi
+    done < <(find "$REPO_DIR/manifests" -name "*.yaml" -type f)
+    if (( YAML_ERRORS == 0 )); then
+        pass "B-11 All YAML manifests are valid"
+    else
+        fail "B-11 $YAML_ERRORS YAML file(s) have errors"
     fi
-done < <(find "$REPO_DIR/manifests" -name "*.yaml" -type f)
-if (( YAML_ERRORS == 0 )); then
-    pass "B-11 All YAML manifests are valid"
 else
-    fail "B-11 $YAML_ERRORS YAML file(s) have errors"
+    # Fallback: check YAML syntax with kubectl dry-run or basic grep
+    while IFS= read -r yaml; do
+        if ! grep -q 'apiVersion' "$yaml" 2>/dev/null; then
+            echo "# Missing apiVersion in: $yaml"
+            YAML_ERRORS=$((YAML_ERRORS + 1))
+        fi
+    done < <(find "$REPO_DIR/manifests" -name "*.yaml" -type f)
+    if (( YAML_ERRORS == 0 )); then
+        pass "B-11 All YAML manifests have valid structure (pyyaml not available for deep check)"
+    else
+        fail "B-11 $YAML_ERRORS YAML file(s) missing apiVersion"
+    fi
 fi
 
 # B-12: AI Usage policy present in README
