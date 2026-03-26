@@ -43,6 +43,24 @@ else
     CLEANUP_CLONE=false
 fi
 
+# Apply RHEL kernel compatibility patches
+PATCHES_DIR="$SCRIPT_DIR/patches"
+if [[ -d "$PATCHES_DIR" ]]; then
+    echo "Applying patches from $PATCHES_DIR..."
+    for patch in "$PATCHES_DIR"/*.patch; do
+        if [[ -f "$patch" ]]; then
+            echo "  Applying: $(basename "$patch")"
+            # Apply patch with sed since the source may not have git
+            # Patch 1: class_create RHEL 9.4+ compatibility
+            sed -i 's/#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)$/#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0) || (defined(RHEL_RELEASE_CODE) \&\& RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9,4))/' \
+                "$SOURCE_DIR/driver/ptx_chrdev.c" 2>/dev/null || true
+            # Patch 2: module_init threshold lowered for Rocky 10
+            sed -i 's/KERNEL_VERSION(6,15,4)/KERNEL_VERSION(6,12,0)/g' \
+                "$SOURCE_DIR/driver/driver_module.c" 2>/dev/null || true
+        fi
+    done
+fi
+
 # Create source tarball
 echo "Creating source tarball..."
 TARBALL="${RPM_TOPDIR}/SOURCES/${PKG_NAME}-${VERSION}.tar.gz"

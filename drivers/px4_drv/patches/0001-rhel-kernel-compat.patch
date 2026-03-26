@@ -1,0 +1,59 @@
+From: Howard Van Der Wal <metalllinux@users.noreply.github.com>
+Subject: [PATCH] Add RHEL kernel compatibility for class_create and module_init
+
+RHEL/Rocky Linux kernels backport upstream API changes to older kernel
+versions, so version checks based on upstream kernel versions fail.
+
+- class_create(): RHEL 9.4+ (kernel 5.14) backported the single-argument
+  API from upstream 6.4.0. Add RHEL_RELEASE_CODE check.
+
+- module_init(): RHEL 10 (kernel 6.12) enforces module_init()/module_exit()
+  macros, which upstream only enforces from 6.15.4. Lower the threshold
+  to 6.12.0 to cover Rocky Linux 10.
+
+---
+ driver/driver_module.c | 6 +++---
+ driver/ptx_chrdev.c    | 2 +-
+ 2 files changed, 4 insertions(+), 4 deletions(-)
+
+--- a/driver/ptx_chrdev.c
++++ b/driver/ptx_chrdev.c
+@@ -577,7 +577,7 @@
+ 	ctx->last_id = 0;
+ 	init_waitqueue_head(&ctx->wait);
+
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,4,0) || (defined(RHEL_RELEASE_CODE) && RHEL_RELEASE_CODE >= RHEL_RELEASE_VERSION(9,4))
+ 	ctx->class = class_create(name);
+ #else
+ 	ctx->class = class_create(THIS_MODULE, name);
+
+--- a/driver/driver_module.c
++++ b/driver/driver_module.c
+@@ -16,7 +16,7 @@
+ #include "px4_device_params.h"
+ #include "firmware.h"
+
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,15,4)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,12,0)
+ static int __init m_init(void)
+ #else
+ int init_module(void)
+@@ -52,7 +52,7 @@
+ 	return ret;
+ }
+
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,15,4)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,12,0)
+ static void __exit m_cleanup(void)
+ #else
+ void cleanup_module(void)
+@@ -61,7 +61,7 @@
+ 	px4_usb_unregister();
+ }
+
+-#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,15,4)
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,12,0)
+ module_init(m_init);
+ module_exit(m_cleanup);
+ #endif
