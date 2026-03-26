@@ -41,6 +41,28 @@
 - KDE Plasma 6 (significant UI changes from Plasma 5)
 - px4_drv v0.5.5 predates Rocky 10 GA — compilation against 6.12 needs testing
 
+## px4_drv DKMS Build Findings (v0.5.5)
+
+Tested on 2026-03-26 across all three Rocky versions:
+
+### Rocky 8 (kernel 4.18) — PASS
+- DKMS build succeeds, module loads cleanly
+- All 12 RPM tests pass
+
+### Rocky 9 (kernel 5.14) — FAIL
+- `class_create()` API changed: kernel now takes only `(const char *name)`, not `(struct module *, const char *name)`
+- Error: `too many arguments to function 'class_create'` in `ptx_chrdev.c:582`
+- Requires patching the driver source or using the `develop` branch which may have this fix
+
+### Rocky 10 (kernel 6.12) — FAIL
+- Module compiles but fails at link time
+- Error: `objtool: cleanup_module(): Magic init_module() function name is deprecated, use module_init(fn) instead`
+- Kernel 6.12 requires `module_init()`/`module_exit()` macros instead of bare function names
+- v0.5.5 release notes mention adding `__init`/`__exit` but the issue persists
+
+### Resolution
+The px4_drv `develop` branch may contain fixes for both issues. If not, patches need to be created in the Metalllinux fork's `rocky-packaging` branch.
+
 ## Installer Adjustments by Version
 
 The installer `modules/02-zfs.sh` and `modules/03-kubeadm.sh` handle version
