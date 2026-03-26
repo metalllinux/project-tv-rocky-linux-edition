@@ -1,0 +1,21 @@
+# Installer runtime logs
+logs/
+
+# Generated config (contains user-specific dataset info)
+config/datasets.conf
+config/.env
+
+# RPM build artifacts
+*.rpm
+rpmbuild/
+
+# Editor files
+*.swp
+*.swo
+*~
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
