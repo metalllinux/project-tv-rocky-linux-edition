@@ -1,0 +1,102 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: epgstation
+  namespace: project-tv
+  labels:
+    app: epgstation
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: epgstation
+  template:
+    metadata:
+      labels:
+        app: epgstation
+    spec:
+      initContainers:
+      # Wait for MariaDB to be ready
+      - name: wait-mariadb
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z mariadb 3306; do
+            echo "Waiting for MariaDB..."
+            sleep 3
+          done
+          echo "MariaDB is ready"
+      # Wait for Mirakurun to be ready
+      - name: wait-mirakurun
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z mirakurun 40772; do
+            echo "Waiting for Mirakurun..."
+            sleep 3
+          done
+          echo "Mirakurun is ready"
+      containers:
+      - name: epgstation
+        image: l3tnun/epgstation:latest
+        ports:
+        - containerPort: 8888
+          name: http
+        - containerPort: 8889
+          name: socketio
+        env:
+        - name: TZ
+          value: "Asia/Tokyo"
+        volumeMounts:
+        - name: config
+          mountPath: /app/config/config.yml
+          subPath: config.yml
+        - name: config
+          mountPath: /app/config/operatorLogConfig.yml
+          subPath: operatorLogConfig.yml
+        - name: config
+          mountPath: /app/config/epgUpdaterLogConfig.yml
+          subPath: epgUpdaterLogConfig.yml
+        - name: config
+          mountPath: /app/config/serviceLogConfig.yml
+          subPath: serviceLogConfig.yml
+        - name: data
+          mountPath: /app/data
+        - name: thumbnail
+          mountPath: /app/thumbnail
+        - name: logs
+          mountPath: /app/logs
+        - name: recorded
+          mountPath: /app/recorded
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "2000m"
+      volumes:
+      - name: config
+        configMap:
+          name: epgstation-config
+      - name: data
+        hostPath:
+          path: /var/lib/project-tv/epgstation/data
+          type: DirectoryOrCreate
+      - name: thumbnail
+        hostPath:
+          path: /var/lib/project-tv/epgstation/thumbnail
+          type: DirectoryOrCreate
+      - name: logs
+        hostPath:
+          path: /var/lib/project-tv/epgstation/logs
+          type: DirectoryOrCreate
+      - name: recorded
+        hostPath:
+          # PLACEHOLDER: replaced by installer with user's ZFS tv dataset path
+          path: /mnt/mediapool/tv
+          type: DirectoryOrCreate

@@ -1,0 +1,43 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: jellyfin-library-refresh
+  namespace: project-tv
+  labels:
+    app: jellyfin
+    component: library-refresh
+spec:
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+          - name: refresh
+            image: curlimages/curl:latest
+            command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Triggering Jellyfin library refresh..."
+              HTTP_CODE=$(curl -s -o /dev/null -w "%{http_code}" -X POST \
+                "http://jellyfin.project-tv.svc.cluster.local:8096/Library/Refresh" \
+                -H "X-Emby-Token: ${JELLYFIN_API_KEY}")
+              echo "HTTP response code: $HTTP_CODE"
+              if [ "$HTTP_CODE" = "204" ] || [ "$HTTP_CODE" = "200" ]; then
+                echo "Library refresh triggered successfully"
+                exit 0
+              else
+                echo "Failed to trigger library refresh (HTTP $HTTP_CODE)"
+                exit 1
+              fi
+            env:
+            - name: JELLYFIN_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: jellyfin-api-secret
+                  key: api-key
+          restartPolicy: OnFailure

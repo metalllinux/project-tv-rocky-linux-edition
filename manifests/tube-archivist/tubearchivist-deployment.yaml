@@ -1,0 +1,103 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: tubearchivist
+  namespace: project-tv
+  labels:
+    app: tubearchivist
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: tubearchivist
+  template:
+    metadata:
+      labels:
+        app: tubearchivist
+    spec:
+      initContainers:
+      - name: wait-elasticsearch
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z archivist-es 9200; do
+            echo "Waiting for Elasticsearch..."
+            sleep 5
+          done
+          echo "Elasticsearch is ready"
+      - name: wait-redis
+        image: busybox:1.36
+        command:
+        - sh
+        - -c
+        - |
+          until nc -z archivist-redis 6379; do
+            echo "Waiting for Redis..."
+            sleep 3
+          done
+          echo "Redis is ready"
+      containers:
+      - name: tubearchivist
+        image: bbilly1/tubearchivist:latest
+        ports:
+        - containerPort: 8000
+          name: http
+        env:
+        - name: ES_URL
+          value: "http://archivist-es:9200"
+        - name: REDIS_HOST
+          value: "archivist-redis"
+        - name: HOST_UID
+          value: "1000"
+        - name: HOST_GID
+          value: "1000"
+        - name: TA_HOST
+          value: "0.0.0.0"
+        - name: TZ
+          value: "Asia/Tokyo"
+        - name: TA_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: tubearchivist-secret
+              key: TA_USERNAME
+        - name: TA_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tubearchivist-secret
+              key: TA_PASSWORD
+        - name: ELASTIC_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: tubearchivist-secret
+              key: ELASTIC_PASSWORD
+        volumeMounts:
+        - name: youtube
+          mountPath: /youtube
+        - name: cache
+          mountPath: /cache
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 60
+          periodSeconds: 120
+          timeoutSeconds: 10
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "1Gi"
+            cpu: "2000m"
+      volumes:
+      - name: youtube
+        hostPath:
+          # PLACEHOLDER: replaced by installer with user's ZFS youtube dataset path
+          path: /mnt/mediapool/youtube
+          type: DirectoryOrCreate
+      - name: cache
+        hostPath:
+          path: /var/lib/project-tv/tube-archivist/cache
+          type: DirectoryOrCreate

@@ -1,0 +1,94 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mirakurun
+  namespace: project-tv
+  labels:
+    app: mirakurun
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: mirakurun
+  template:
+    metadata:
+      labels:
+        app: mirakurun
+    spec:
+      containers:
+      - name: mirakurun
+        image: chinachu/mirakurun:latest
+        ports:
+        - containerPort: 40772
+          name: http
+        - containerPort: 9229
+          name: debug
+        env:
+        - name: TZ
+          value: "Asia/Tokyo"
+        securityContext:
+          privileged: true
+          capabilities:
+            add:
+            - SYS_ADMIN
+            - SYS_NICE
+        volumeMounts:
+        - name: config
+          mountPath: /app-config/tuners.yml
+          subPath: tuners.yml
+        - name: config
+          mountPath: /app-config/channels.yml
+          subPath: channels.yml
+        - name: data
+          mountPath: /app-data
+        - name: px4video0
+          mountPath: /dev/px4video0
+        - name: px4video1
+          mountPath: /dev/px4video1
+        - name: px4video2
+          mountPath: /dev/px4video2
+        - name: px4video3
+          mountPath: /dev/px4video3
+        - name: dev-bus
+          mountPath: /dev/bus
+        - name: pcscd
+          mountPath: /run/pcscd/pcscd.comm
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "1000m"
+      volumes:
+      - name: config
+        configMap:
+          name: mirakurun-config
+      - name: data
+        hostPath:
+          path: /var/lib/project-tv/mirakurun/data
+          type: DirectoryOrCreate
+      - name: px4video0
+        hostPath:
+          path: /dev/px4video0
+          type: CharDevice
+      - name: px4video1
+        hostPath:
+          path: /dev/px4video1
+          type: CharDevice
+      - name: px4video2
+        hostPath:
+          path: /dev/px4video2
+          type: CharDevice
+      - name: px4video3
+        hostPath:
+          path: /dev/px4video3
+          type: CharDevice
+      - name: dev-bus
+        hostPath:
+          path: /dev/bus
+          type: Directory
+      - name: pcscd
+        hostPath:
+          path: /run/pcscd/pcscd.comm
+          type: Socket

@@ -1,0 +1,50 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mirakurun-config
+  namespace: project-tv
+data:
+  tuners.yml: |
+    # Tuner configuration for PX-W3PE5 (W series)
+    # Adjust device paths if using a different tuner model.
+    - name: PX-W3PE5-S1
+      types:
+        - BS
+        - CS
+      command: >-
+        recpt1 --device /dev/px4video0 --lnb 15 <channel> - -
+      decoder: ~
+      isDisabled: false
+
+    - name: PX-W3PE5-S2
+      types:
+        - BS
+        - CS
+      command: >-
+        recpt1 --device /dev/px4video1 --lnb 15 <channel> - -
+      decoder: ~
+      isDisabled: false
+
+    - name: PX-W3PE5-T1
+      types:
+        - GR
+      command: >-
+        recpt1 --device /dev/px4video2 <channel> - -
+      decoder: ~
+      isDisabled: false
+
+    - name: PX-W3PE5-T2
+      types:
+        - GR
+      command: >-
+        recpt1 --device /dev/px4video3 <channel> - -
+      decoder: ~
+      isDisabled: false
+
+  channels.yml: |
+    # Channel configuration
+    # This will be populated after running a channel scan via the Mirakurun API:
+    #   PUT http://<host>:40772/api/config/channels/scan
+    #
+    # Channels are auto-discovered and saved here.
+    []
