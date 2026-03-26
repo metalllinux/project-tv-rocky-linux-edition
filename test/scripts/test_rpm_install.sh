@@ -58,8 +58,8 @@ else
     fail "A-06 Firmware file not found"
 fi
 
-# A-07: Udev rules installed
-if [[ -f /etc/udev/rules.d/99-px4video.rules ]]; then
+# A-07: Udev rules installed (check both legacy and modern paths)
+if [[ -f /etc/udev/rules.d/99-px4video.rules ]] || [[ -f /usr/lib/udev/rules.d/99-px4video.rules ]]; then
     pass "A-07 Udev rules installed"
 else
     fail "A-07 Udev rules not found"
