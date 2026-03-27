@@ -190,7 +190,10 @@ Copy `test/kickstart/ks-custom-iso.cfg` to the ISO root:
 cp test/kickstart/ks-custom-iso.cfg ~/isos/custom-rocky10/iso-root/ks.cfg
 ```
 
-**Important:** Edit `ks.cfg` to set your own password on the `rootpw` and `user` lines. You can generate a SHA-512 hash with:
+**Important:** Edit `ks.cfg` before building the ISO:
+
+1. **Target disk** — the default kickstart targets `nvme0n1`. Change `ignoredisk --only-use=`, `clearpart --drives=`, and `autopart --drives=` to match your target disk. **This will erase the target disk entirely.** All other disks are left untouched.
+2. **Password** — set your own password on the `rootpw` and `user` lines. You can generate a SHA-512 hash with:
 
 ```bash
 openssl passwd -6 'your-password-here'
