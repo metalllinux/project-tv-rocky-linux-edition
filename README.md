@@ -150,7 +150,163 @@ Offers a choice of browsers to install via Flatpak:
 ### Desktop applications (module 18)
 
 Optional applications including:
-- SeaDrive desktop client (Seafile virtual drive for KDE Dolphin)
+- MakeMKV — DVD/Blu-ray ripper (via Flatpak)
+- Jellyfin Media Player — desktop media client (via Flatpak)
+- SeaDrive — Seafile virtual drive for KDE Dolphin
+
+## Building the custom Rocky Linux 10 ISO
+
+A pre-built custom ISO can be created that auto-installs Rocky Linux 10 with all prerequisites, then installs KDE Plasma on first boot. The result is a USB-bootable ISO — insert it, select install, and boot into KDE with the Project TV installer ready.
+
+### Prerequisites
+
+```bash
+# Tools needed on the build host
+sudo dnf install -y xorriso pykickstart
+```
+
+### Step 1: Extract the Rocky Linux 10 DVD ISO
+
+```bash
+mkdir -p ~/isos/custom-rocky10
+xorriso -osirrox on \
+  -indev ~/isos/Rocky-10.1-x86_64-dvd1.iso \
+  -extract / ~/isos/custom-rocky10/iso-root
+```
+
+### Step 2: Copy the Project TV files into the ISO tree
+
+```bash
+rsync -a --exclude='.git' --exclude='logs/' \
+  /path/to/project_tv_rocky_linux/ \
+  ~/isos/custom-rocky10/iso-root/project_tv_rocky_linux/
+```
+
+### Step 3: Add the kickstart file
+
+Copy `test/kickstart/ks-custom-iso.cfg` to the ISO root:
+
+```bash
+cp test/kickstart/ks-custom-iso.cfg ~/isos/custom-rocky10/iso-root/ks.cfg
+```
+
+**Important:** Edit `ks.cfg` to set your own password on the `rootpw` and `user` lines. You can generate a SHA-512 hash with:
+
+```bash
+openssl passwd -6 'your-password-here'
+```
+
+Then replace the `--plaintext` lines with `--iscrypted $6$hash...`.
+
+### Step 4: Modify the boot menu
+
+Add a kickstart boot entry to the GRUB configuration. The new entry must be the **first** menuentry and `set default="0"` must be set.
+
+**BIOS boot** — edit `iso-root/boot/grub2/grub.cfg`:
+
+```
+set default="0"
+```
+
+Add before the existing "Install Rocky Linux 10.1" entry:
+
+```
+menuentry 'Install Rocky Linux 10.1 (Project TV - Kickstart)' --class fedora --class gnu-linux --class gnu --class os {
+	linux /images/pxeboot/vmlinuz inst.stage2=hd:LABEL=Rocky-10-1-x86_64-dvd inst.ks=file:/ks.cfg quiet
+	initrd /images/pxeboot/initrd.img
+}
+```
+
+**EFI boot** — edit `iso-root/EFI/BOOT/grub.cfg` with the same entry but using `linuxefi`/`initrdefi`.
+
+**EFI boot image** — the `grub.cfg` inside `iso-root/images/efiboot.img` must also be updated:
+
+```bash
+cp iso-root/images/efiboot.img /tmp/efiboot_rw.img
+sudo mount -o loop /tmp/efiboot_rw.img /tmp/efiboot_mnt
+sudo cp iso-root/EFI/BOOT/grub.cfg /tmp/efiboot_mnt/EFI/BOOT/grub.cfg
+sudo umount /tmp/efiboot_mnt
+sudo cp /tmp/efiboot_rw.img iso-root/images/efiboot.img
+```
+
+### Step 5: Inject the kickstart into the initrd
+
+Anaconda reads kickstart files from the initrd most reliably:
+
+```bash
+mkdir -p /tmp/ks-inject
+cp iso-root/ks.cfg /tmp/ks-inject/ks.cfg
+cd /tmp/ks-inject
+echo "ks.cfg" | cpio -o -H newc > /tmp/ks-initrd.img
+cat ~/isos/custom-rocky10/iso-root/images/pxeboot/initrd.img /tmp/ks-initrd.img \
+  > /tmp/initrd-with-ks.img
+cp /tmp/initrd-with-ks.img ~/isos/custom-rocky10/iso-root/images/pxeboot/initrd.img
+```
+
+### Step 6: Rebuild the ISO
+
+The volume label **must** be `Rocky-10-1-x86_64-dvd` (the GRUB `search` command depends on it):
+
+```bash
+cd ~/isos/custom-rocky10
+
+xorriso -as mkisofs \
+  -V 'Rocky-10-1-x86_64-dvd' \
+  -o ~/isos/Rocky-10.1-x86_64-custom.iso \
+  -b images/eltorito.img \
+  -no-emul-boot \
+  -boot-load-size 4 \
+  -boot-info-table \
+  --grub2-boot-info \
+  -eltorito-alt-boot \
+  -e images/efiboot.img \
+  -no-emul-boot \
+  --grub2-mbr --interval:local_fs:0s-15s:zero_mbrpt,zero_gpt:~/isos/Rocky-10.1-x86_64-dvd1.iso \
+  --protective-msdos-label \
+  -partition_cyl_align off \
+  -partition_offset 16 \
+  -append_partition 2 C12A7328-F81F-11D2-BA4B-00A0C93EC93B iso-root/images/efiboot.img \
+  -appended_part_as_gpt \
+  -iso_mbr_part_type A2A0D0EB-E5B9-3344-87C0-68B6B72699C7 \
+  --boot-catalog-hide \
+  -R -J \
+  iso-root/
+```
+
+This creates a hybrid MBR/GPT ISO that boots from both USB and optical media without needing `isohybrid`.
+
+### Step 7: Write to USB
+
+```bash
+sudo dd if=~/isos/Rocky-10.1-x86_64-custom.iso of=/dev/sdX bs=4M status=progress oflag=sync
+```
+
+Replace `/dev/sdX` with your actual USB device (check with `lsblk`).
+
+### Step 8: Boot and install
+
+1. Boot from the USB — "Install Rocky Linux 10.1 (Project TV - Kickstart)" is the default menu entry
+2. The kickstart auto-installs the base system from the DVD (~5 minutes)
+3. The system reboots, then the first-boot service installs KDE Plasma + dkms + flatpak from EPEL (~5-10 minutes depending on internet speed)
+4. The system reboots again into SDDM — log in and run `sudo ./project_tv_rocky_linux/install.sh`
+
+### Testing the ISO in a VM
+
+```bash
+virt-install \
+  --connect qemu:///system \
+  --name rocky10-ks-test \
+  --ram 8192 --vcpus 4 \
+  --os-variant rocky10 \
+  --location ~/isos/Rocky-10.1-x86_64-custom.iso \
+  --disk size=80 \
+  --network network=default \
+  --initrd-inject=test/kickstart/ks-custom-iso.cfg \
+  --extra-args="inst.ks=file:/ks-custom-iso.cfg console=ttyS0,115200n8" \
+  --noautoconsole --wait=-1
+```
+
+**Note:** When testing with `virt-install --location`, use `--initrd-inject` to inject the kickstart into the initrd. This is the most reliable method for VM testing.
 
 ## Supported Rocky Linux versions
 
