@@ -223,14 +223,14 @@ run() {
     if command -v zfs &>/dev/null && lsmod | grep -q '^zfs'; then
         log_info "ZFS is already installed: $(zfs version 2>/dev/null | head -1)"
         if ! ask_yes_no "Skip ZFS installation?" "default_yes"; then
-            install_zfs
+            install_zfs || { log_error "ZFS installation failed — cannot continue with storage setup."; return 1; }
         fi
     else
-        install_zfs
+        install_zfs || { log_error "ZFS installation failed — cannot continue with storage setup."; return 1; }
     fi
 
     # Create pool
-    create_pool
+    create_pool || return 1
 
     # Create datasets
     create_datasets
