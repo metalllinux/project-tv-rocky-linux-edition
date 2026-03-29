@@ -40,10 +40,16 @@ ask_text() {
 
     if [[ -n "$default" ]]; then
         read -rp "$question [$default]: " answer
-        echo "${answer:-$default}"
+        answer="${answer:-$default}"
+        # Strip trailing carriage returns and whitespace
+        answer="${answer%"${answer##*[![:space:]]}"}"
+        answer="${answer#"${answer%%[![:space:]]*}"}"
+        echo "$answer"
     else
         while true; do
             read -rp "$question: " answer
+            answer="${answer%"${answer##*[![:space:]]}"}"
+            answer="${answer#"${answer%%[![:space:]]*}"}"
             if [[ -n "$answer" ]]; then
                 echo "$answer"
                 return
