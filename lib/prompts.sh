@@ -35,7 +35,7 @@ ask_yes_no() {
 # Usage: result=$(ask_text "Prompt" "default_value")
 ask_text() {
     local question="$1"
-    local default="$2"
+    local default="${2:-}"
     local answer
 
     if [[ -n "$default" ]]; then

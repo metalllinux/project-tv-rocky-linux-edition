@@ -153,7 +153,10 @@ create_pool() {
     fi
     pool_cmd="$pool_cmd ${disks[*]}"
 
-    log_cmd "Create ZFS pool" bash -c "$pool_cmd"
+    if ! log_cmd "Create ZFS pool" bash -c "$pool_cmd"; then
+        log_error "Pool creation failed. Check the disk paths and pool type."
+        return 1
+    fi
 
     ZFS_POOL_NAME="$pool_name"
     ZFS_MOUNT_BASE="$mount_base"
