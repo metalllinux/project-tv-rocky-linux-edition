@@ -21,9 +21,7 @@ install_zfs() {
     case "$rocky_major" in
         10)
             log_cmd "Install ZFS repo for EL10" \
-                dnf install -y "https://zfsonlinux.org/epel/zfs-release-2-4.el${rocky_major}.noarch.rpm" || \
-                log_cmd "Install ZFS repo (alt)" \
-                    dnf install -y "https://zfsonlinux.org/epel/zfs-release-2-3.el${rocky_major}.noarch.rpm"
+                dnf install -y "https://zfsonlinux.org/epel/zfs-release-3-0.el${rocky_major}.noarch.rpm"
             ;;
         9)
             log_cmd "Install ZFS repo for EL9" \
