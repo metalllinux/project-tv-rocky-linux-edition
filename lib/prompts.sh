@@ -48,7 +48,7 @@ ask_text() {
                 echo "$answer"
                 return
             fi
-            echo "Please enter a value."
+            echo "Please enter a value." >&2
         done
     fi
 }
@@ -74,7 +74,7 @@ ask_number() {
             echo "$answer"
             return
         fi
-        echo "Please enter a number between $min and $max."
+        echo "Please enter a number between $min and $max." >&2
     done
 }
 
@@ -86,13 +86,13 @@ ask_menu() {
     local options=("$@")
     local num_options=${#options[@]}
 
-    echo ""
-    echo "$title"
-    echo "$(printf '=%.0s' $(seq 1 ${#title}))"
+    echo "" >&2
+    echo "$title" >&2
+    echo "$(printf '=%.0s' $(seq 1 ${#title}))" >&2
     for i in "${!options[@]}"; do
-        printf "  [%d] %s\n" $((i + 1)) "${options[$i]}"
+        printf "  [%d] %s\n" $((i + 1)) "${options[$i]}" >&2
     done
-    echo ""
+    echo "" >&2
 
     local choice
     while true; do
@@ -101,7 +101,7 @@ ask_menu() {
             echo "$choice"
             return
         fi
-        echo "Please enter a number between 1 and $num_options."
+        echo "Please enter a number between 1 and $num_options." >&2
     done
 }
 
@@ -113,13 +113,13 @@ ask_multi_menu() {
     local options=("$@")
     local num_options=${#options[@]}
 
-    echo ""
-    echo "$title"
-    echo "$(printf '=%.0s' $(seq 1 ${#title}))"
+    echo "" >&2
+    echo "$title" >&2
+    echo "$(printf '=%.0s' $(seq 1 ${#title}))" >&2
     for i in "${!options[@]}"; do
-        printf "  [%d] %s\n" $((i + 1)) "${options[$i]}"
+        printf "  [%d] %s\n" $((i + 1)) "${options[$i]}" >&2
     done
-    echo ""
+    echo "" >&2
 
     local choices
     while true; do
@@ -136,7 +136,7 @@ ask_multi_menu() {
         local valid=true
         for c in $choices; do
             if ! [[ "$c" =~ ^[0-9]+$ ]] || (( c < 1 || c > num_options )); then
-                echo "Invalid selection: $c"
+                echo "Invalid selection: $c" >&2
                 valid=false
                 break
             fi
@@ -145,7 +145,7 @@ ask_multi_menu() {
             echo "$choices"
             return
         fi
-        echo "Please enter valid option numbers separated by spaces."
+        echo "Please enter valid option numbers separated by spaces." >&2
     done
 }
 
