@@ -143,11 +143,32 @@ create_pool() {
         return 1
     fi
 
+    # Check if any disks have existing filesystems
+    local force_flag=""
+    local has_existing=false
+    for d in "${disks[@]}"; do
+        if blkid "$d" &>/dev/null || blkid "${d}-part"* &>/dev/null 2>&1; then
+            has_existing=true
+            log_warn "Disk $d contains an existing filesystem or partition table:"
+            blkid "$d"* 2>/dev/null | while read -r line; do echo "  $line"; done
+        fi
+    done
+    if $has_existing; then
+        echo ""
+        log_warn "One or more disks contain existing data. ALL DATA WILL BE DESTROYED."
+        if ask_yes_no "Force pool creation and overwrite existing data?" "default_no"; then
+            force_flag="-f"
+        else
+            log_info "Pool creation cancelled."
+            return 1
+        fi
+    fi
+
     # Create mount point
     mkdir -p "$mount_base"
 
     # Create pool
-    local pool_cmd="zpool create -o ashift=$ZFS_ASHIFT -O mountpoint=$mount_base/$pool_name $pool_name"
+    local pool_cmd="zpool create $force_flag -o ashift=$ZFS_ASHIFT -O mountpoint=$mount_base/$pool_name $pool_name"
     if [[ -n "$pool_type_name" ]]; then
         pool_cmd="$pool_cmd $pool_type_name"
     fi
