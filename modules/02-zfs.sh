@@ -114,7 +114,7 @@ create_pool() {
 
     for ((i = 1; i <= disk_count; i++)); do
         local disk
-        disk=$(ask_text "Enter disk $i (full path, e.g. /dev/disk/by-id/...)")
+        disk=$(ask_text "Enter disk $i (run 'ls -l /dev/disk/by-id/' to list disk IDs)")
         if [[ ! -e "$disk" ]]; then
             log_warn "$disk does not exist. Are you sure?"
             if ! ask_yes_no "Continue with this disk path?"; then
