@@ -61,6 +61,37 @@ logs/                   # Created at runtime (gitignored)
 - The `config/datasets.conf` format is: `dataset_name:mount_point` (one per line)
 - Module 05 (storage) reads `datasets.conf` and generates PV/PVC YAML at install time
 
+## Custom ISO build
+
+The custom ISO auto-installs Rocky Linux 10 with all prerequisites, then installs KDE Plasma on first boot.
+
+### Build steps (from host at 192.168.1.102)
+
+1. Extract: `xorriso -osirrox on -indev ~/isos/Rocky-10.1-x86_64-dvd1.iso -extract / ~/isos/custom-rocky10/iso-root`
+2. `chmod -R u+w ~/isos/custom-rocky10/iso-root/` (xorriso extracts read-only)
+3. Copy project files: `rsync -a --exclude='.git' --exclude='logs/' ./ ~/isos/custom-rocky10/iso-root/project_tv_rocky_linux/`
+4. Copy kickstart: `cp test/kickstart/ks-custom-iso.cfg ~/isos/custom-rocky10/iso-root/ks.cfg`
+5. Patch all 3 GRUB configs (BIOS, EFI, efiboot.img) — add kickstart entry as first menuentry, set `default="0"`
+6. Inject ks.cfg into initrd via cpio append
+7. Rebuild with xorriso (volume label **must** be `Rocky-10-1-x86_64-dvd`)
+8. `sudo dd if=~/isos/Rocky-10.1-x86_64-custom.iso of=/dev/sdc bs=4M status=progress oflag=sync`
+
+### Critical details
+
+- **Kickstart path**: Use `inst.ks=hd:LABEL=Rocky-10-1-x86_64-dvd:/ks.cfg` — the `file:/ks.cfg` method is unreliable on Rocky 10
+- **Boot mode**: `text` directive in kickstart + `inst.text` on kernel cmdline — no GUI Anaconda
+- **3 GRUB configs must all be updated**: `boot/grub2/grub.cfg` (BIOS), `EFI/BOOT/grub.cfg` (EFI), and the grub.cfg inside `images/efiboot.img` (mount as loop, copy, unmount)
+- **Partitioning**: Explicit `part`/`logvol` (not `autopart`) — keeps sda/sdb untouched for ZFS. Requires `bootloader`, `/boot/efi`, and `/boot` directives
+- **USB target**: `/dev/sdc` is the Verbatim STORE N GO (57.8G) on the build host
+
+### Hardware layout (deployment target: `vector` / 192.168.1.191)
+
+| Device | Size | Purpose |
+|--------|------|---------|
+| nvme0n1 | 476.9G | OS (Rocky Linux, LVM: root + swap) |
+| sda | 10.9T | ZFS mirror pool (ST12000NM0127) |
+| sdb | 10.9T | ZFS mirror pool (ST12000NM0127) |
+
 ## Testing
 
 - `test/scripts/test_installer.sh` — validates project structure (TAP format)
@@ -84,3 +115,6 @@ logs/                   # Created at runtime (gitignored)
 - GitHub username is `metalllinux` (triple L), personal brand is `metalinux` (single L)
 - Never commit real passwords — secrets use `CHANGE_ME_*` or `PLACEHOLDER_*` markers
 - SELinux: installer prompts user for permissive vs enforcing (permissive recommended for device passthrough)
+- `install.sh` uses `set -euo pipefail` — all lib functions must use `${2:-}` syntax for optional parameters
+- lib/prompts.sh functions called via `$()` must send display text to stderr (`>&2`), only the return value to stdout
+- OpenZFS repo for EL10 is `zfs-release-3-0` (not `2-4`) — URL: `https://zfsonlinux.org/epel/zfs-release-3-0.el10.noarch.rpm`
