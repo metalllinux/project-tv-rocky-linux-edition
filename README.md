@@ -289,9 +289,38 @@ Replace `/dev/sdX` with your actual USB device (check with `lsblk`).
 ### Step 8: Boot and install
 
 1. Boot from the USB — "Install Rocky Linux 10.1 (Project TV - Kickstart)" is the default menu entry
-2. The kickstart auto-installs the base system from the DVD (~5 minutes)
-3. The system reboots, then the first-boot service installs KDE Plasma + dkms + flatpak from EPEL (~5-10 minutes depending on internet speed)
-4. The system reboots again into SDDM — log in and run `sudo ./project_tv_rocky_linux/install.sh`
+2. **SSH is enabled during installation** (`inst.sshd` is on the kernel cmdline). Once the installer boots and obtains an IP via DHCP, you can SSH in as root (no password) to inspect Anaconda logs:
+
+   ```bash
+   ssh root@<installer-ip>
+   cat /tmp/packaging.log    # Repository and package errors
+   cat /tmp/anaconda.log     # General installer log
+   cat /tmp/storage.log      # Disk/partitioning issues
+   ```
+
+3. Anaconda opens in graphical mode. Most settings are pre-configured by the kickstart, but you may need to confirm the following spokes before clicking **"Begin Installation"**:
+
+   **Installation Source** (if marked with a warning):
+   - Click **"Installation Source"**
+   - Select **"Auto-detected installation media"** (the USB drive)
+   - Click **"Done"** — Anaconda will verify the media and resolve the warning
+
+   **Software Selection** (if marked with a warning):
+   - Click **"Software Selection"**
+   - Select **"Minimal Install"** (the kickstart `%packages` section handles the rest)
+   - Click **"Done"**
+
+   **Installation Destination** (if marked with a warning):
+   - Click **"Installation Destination"**
+   - Select your target disk (e.g. `nvme0n1`) — ensure no other disks are ticked
+   - Select **"Automatic"** partitioning
+   - If existing partitions are found, click **"Reclaim space"** and then **"Delete all"** to wipe them
+   - Click **"Done"**
+
+   Once all warnings are cleared, click **"Begin Installation"**.
+4. The kickstart installs the base system from the DVD (~5 minutes)
+5. The system reboots, then the first-boot service installs KDE Plasma + dkms + flatpak from EPEL (~5-10 minutes depending on internet speed)
+6. The system reboots again into SDDM — log in and run `sudo ./project_tv_rocky_linux/install.sh`
 
 ### Testing the ISO in a VM
 
