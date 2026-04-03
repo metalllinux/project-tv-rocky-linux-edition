@@ -80,14 +80,42 @@ run() {
     # Offer to set default browser
     if (( installed_count > 0 )); then
         if ask_yes_no "Set a default browser?"; then
-            echo "Installed browsers:"
-            flatpak list --app --columns=name,application 2>/dev/null | grep -iE "chrome|brave|waterfox|firefox|vivaldi|chromium|edge"
-            echo ""
-            local default_app
-            default_app=$(ask_text "Enter the Flatpak application ID to set as default" "")
+            # Build list of installed browsers
+            local -a installed_browsers=()
+            local -a installed_ids=()
+            for browser_def in "${BROWSERS[@]}"; do
+                local name="${browser_def%%:*}"
+                local app_id="${browser_def##*:}"
+                if flatpak list --app 2>/dev/null | grep -q "$app_id"; then
+                    installed_browsers+=("$name")
+                    installed_ids+=("$app_id")
+                fi
+            done
+
+            local default_app=""
+            if (( ${#installed_browsers[@]} == 1 )); then
+                # Only one browser installed — use it automatically
+                default_app="${installed_ids[0]}"
+                echo "Setting ${installed_browsers[0]} ($default_app) as default..."
+            else
+                echo ""
+                echo "Installed browsers:"
+                for i in "${!installed_browsers[@]}"; do
+                    printf "  [%d] %s (%s)\n" "$((i + 1))" "${installed_browsers[$i]}" "${installed_ids[$i]}"
+                done
+                echo ""
+                local choice
+                read -rp "Select a browser (1-${#installed_browsers[@]}): " choice
+                if [[ "$choice" =~ ^[0-9]+$ ]] && (( choice >= 1 && choice <= ${#installed_browsers[@]} )); then
+                    default_app="${installed_ids[$((choice - 1))]}"
+                fi
+            fi
+
             if [[ -n "$default_app" ]]; then
-                xdg-settings set default-web-browser "${default_app}.desktop" 2>/dev/null || \
-                    log_warn "Could not set default browser (may need to be set from desktop)"
+                local target_user="${SUDO_USER:-$(whoami)}"
+                su - "$target_user" -c "xdg-settings set default-web-browser '${default_app}.desktop'" 2>/dev/null || \
+                    log_warn "Could not set default browser (set it manually from KDE System Settings)"
+                log_success "Default browser set to $default_app"
             fi
         fi
     fi

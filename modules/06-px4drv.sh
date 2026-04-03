@@ -6,7 +6,7 @@ run() {
     log_section "px4_drv TV Tuner Driver Installation"
 
     # Check if already installed
-    if lsmod | grep -q '^px4_drv'; then
+    if [[ -d /sys/module/px4_drv ]]; then
         log_info "px4_drv module is already loaded"
         modinfo px4_drv 2>&1 | head -5
         if ask_yes_no "Skip px4_drv installation?" "default_yes"; then
@@ -41,7 +41,7 @@ run() {
     log_cmd "Load px4_drv module" modprobe px4_drv
 
     # Verify
-    if lsmod | grep -q '^px4_drv'; then
+    if [[ -d /sys/module/px4_drv ]]; then
         log_success "px4_drv module loaded successfully"
         modinfo px4_drv 2>&1
     else

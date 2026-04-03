@@ -31,13 +31,88 @@ data:
     thumbnailSize: 480x270
     thumbnailPosition: 5
 
-    ffmpeg: /usr/local/bin/ffmpeg
-    ffprobe: /usr/local/bin/ffprobe
+    ffmpeg: /usr/bin/ffmpeg
+    ffprobe: /usr/bin/ffprobe
+
+    streamFilePath: /app/streamfiles
+    encodeProcessNum: 4
+
+    stream:
+      live:
+        ts:
+          m2ts:
+            - name: 無変換
+              isUnconverted: true
+          m2tsll:
+            - name: 無変換 (低遅延)
+              isUnconverted: true
+          webm:
+            - name: WebM 720p
+              cmd: >-
+                %FFMPEG% -dual_mono_mode main -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a libvorbis -ar 48000 -b:a 192k
+                -ac 2 -c:v libvpx-vp9 -vf yadif,scale=-2:720 -b:v 3000k -deadline realtime
+                -cpu-used 4 -y -f webm pipe:1
+            - name: WebM 480p
+              cmd: >-
+                %FFMPEG% -dual_mono_mode main -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a libvorbis -ar 48000 -b:a 128k
+                -ac 2 -c:v libvpx-vp9 -vf yadif,scale=-2:480 -b:v 1500k -deadline realtime
+                -cpu-used 4 -y -f webm pipe:1
+          mp4:
+            - name: H.264 720p
+              cmd: >-
+                %FFMPEG% -dual_mono_mode main -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a aac -ar 48000 -b:a 192k
+                -ac 2 -c:v libx264 -vf yadif,scale=-2:720 -b:v 3000k -preset veryfast
+                -tune zerolatency -movflags frag_keyframe+empty_moov+faststart+default_base_moof
+                -y -f mp4 pipe:1
+            - name: H.264 480p
+              cmd: >-
+                %FFMPEG% -dual_mono_mode main -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a aac -ar 48000 -b:a 128k
+                -ac 2 -c:v libx264 -vf yadif,scale=-2:480 -b:v 1500k -preset veryfast
+                -tune zerolatency -movflags frag_keyframe+empty_moov+faststart+default_base_moof
+                -y -f mp4 pipe:1
+          hls:
+            - name: HLS 720p
+              cmd: >-
+                %FFMPEG% -dual_mono_mode main -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a aac -ar 48000 -b:a 192k
+                -ac 2 -c:v libx264 -vf yadif,scale=-2:720 -b:v 3000k -preset veryfast
+                -flags +loop-global_header -f hls -hls_time 3 -hls_list_size 17
+                -hls_allow_cache 1 -hls_segment_filename %streamFileDir%/stream%streamNum%-%09d.ts
+                -hls_flags delete_segments %OUTPUT%
+            - name: HLS 480p
+              cmd: >-
+                %FFMPEG% -dual_mono_mode main -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a aac -ar 48000 -b:a 128k
+                -ac 2 -c:v libx264 -vf yadif,scale=-2:480 -b:v 1500k -preset veryfast
+                -flags +loop-global_header -f hls -hls_time 3 -hls_list_size 17
+                -hls_allow_cache 1 -hls_segment_filename %streamFileDir%/stream%streamNum%-%09d.ts
+                -hls_flags delete_segments %OUTPUT%
+      recorded:
+        ts:
+          webm:
+            - name: WebM 720p
+              cmd: >-
+                %FFMPEG% -dual_mono_mode main -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a libvorbis -ar 48000 -b:a 192k
+                -ac 2 -c:v libvpx-vp9 -vf yadif,scale=-2:720 -b:v 3000k -deadline realtime
+                -cpu-used 4 -y -f webm pipe:1
+          mp4:
+            - name: H.264 720p
+              cmd: >-
+                %FFMPEG% -dual_mono_mode main -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a aac -ar 48000 -b:a 192k
+                -ac 2 -c:v libx264 -vf yadif,scale=-2:720 -b:v 3000k -preset veryfast
+                -movflags frag_keyframe+empty_moov+faststart+default_base_moof
+                -y -f mp4 pipe:1
+          hls:
+            - name: HLS 720p
+              cmd: >-
+                %FFMPEG% -dual_mono_mode main -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a aac -ar 48000 -b:a 192k
+                -ac 2 -c:v libx264 -vf yadif,scale=-2:720 -b:v 3000k -preset veryfast
+                -flags +loop-global_header -f hls -hls_time 3 -hls_list_size 17
+                -hls_allow_cache 1 -hls_segment_filename %streamFileDir%/stream%streamNum%-%09d.ts
+                -hls_flags delete_segments %OUTPUT%
 
     encode:
       - name: H.264
         cmd: >-
-          %FFMPEG% -dual_mono_mode main -i pipe:0 -c:a aac -ar 48000 -b:a 192k
+          %FFMPEG% -dual_mono_mode main -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a aac -ar 48000 -b:a 192k
           -ac 2 -c:v libx264 -vf yadif,scale=-2:720 -b:v 3000k -preset veryfast
           -y -f mp4 pipe:1
         suffix: .mp4

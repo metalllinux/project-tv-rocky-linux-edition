@@ -270,6 +270,16 @@ run() {
         install_kubeadm
     fi
 
+    # Check if cluster is already fully set up
+    if [[ -f /etc/kubernetes/admin.conf ]] && kubectl get nodes --no-headers 2>/dev/null | grep -q "Ready"; then
+        log_info "Kubernetes cluster is already running and Ready"
+        kubectl get nodes -o wide 2>&1
+        echo ""
+        kubectl get pods -A 2>&1
+        log_success "Kubernetes cluster is ready — nothing to do"
+        return 0
+    fi
+
     # Initialise cluster
     init_cluster
 

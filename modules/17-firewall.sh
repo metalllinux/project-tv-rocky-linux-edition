@@ -5,8 +5,14 @@ run() {
     log_section "Firewall Configuration"
 
     if ! systemctl is-active firewalld &>/dev/null; then
-        log_warn "firewalld is not running. Skipping."
-        return 0
+        log_info "firewalld is not currently running."
+        if ask_yes_no "Enable and start firewalld?"; then
+            log_cmd "Install firewalld" dnf install -y firewalld
+            log_cmd "Enable firewalld" systemctl enable --now firewalld
+        else
+            log_info "Firewall configuration skipped (firewalld not running)"
+            return 0
+        fi
     fi
 
     local ports=(

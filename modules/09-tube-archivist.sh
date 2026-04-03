@@ -6,6 +6,16 @@ DATASETS_CONF="$PROJECT_ROOT/config/datasets.conf"
 run() {
     log_section "Deploying Tube Archivist Stack"
 
+    # Check if already deployed
+    if kubectl get deployment tubearchivist -n "$K8S_NAMESPACE" &>/dev/null; then
+        log_info "Tube Archivist is already deployed:"
+        kubectl get pods -n "$K8S_NAMESPACE" -l 'app in (tubearchivist,elasticsearch,redis)' 2>&1
+        if ! ask_yes_no "Redeploy Tube Archivist stack?" "default_no"; then
+            log_success "Tube Archivist — already running"
+            return 0
+        fi
+    fi
+
     # Prompt for credentials
     echo ""
     echo "Tube Archivist credentials:"
@@ -19,10 +29,11 @@ run() {
     sed -i "s|CHANGE_ME_ELASTIC_PASSWORD|${elastic_pass}|" "$secret_file"
     sed -i "s|CHANGE_ME_TA_PASSWORD|${ta_pass}|" "$secret_file"
 
-    # Update YouTube path from datasets.conf
-    if [[ -f "$DATASETS_CONF" ]]; then
+    # Update YouTube path from storage-paths.conf
+    local storage_conf="$PROJECT_ROOT/config/storage-paths.conf"
+    if [[ -f "$storage_conf" ]]; then
         local yt_mount
-        yt_mount=$(grep '^youtube:' "$DATASETS_CONF" 2>/dev/null | cut -d: -f2)
+        yt_mount=$(grep '^TUBEARCHIVIST_DOWNLOADS=' "$storage_conf" 2>/dev/null | cut -d= -f2)
         if [[ -n "$yt_mount" ]]; then
             log_info "Setting YouTube path to: $yt_mount"
             sed -i "s|path: /mnt/mediapool/youtube|path: ${yt_mount}|" \

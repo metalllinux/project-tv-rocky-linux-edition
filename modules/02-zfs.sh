@@ -43,8 +43,8 @@ install_zfs() {
     # Load ZFS kernel module
     log_cmd "Load ZFS module" modprobe zfs
 
-    # Verify
-    if ! lsmod | grep -q '^zfs'; then
+    # Verify (avoid pipe + grep -q which can fail under pipefail)
+    if [[ ! -d /sys/module/zfs ]]; then
         log_error "ZFS module failed to load"
         return 1
     fi
@@ -271,13 +271,27 @@ create_datasets() {
 
 run() {
     # Install ZFS if not present
-    if command -v zfs &>/dev/null && lsmod | grep -q '^zfs'; then
+    if command -v zfs &>/dev/null && [[ -d /sys/module/zfs ]]; then
         log_info "ZFS is already installed: $(zfs version 2>/dev/null | head -1)"
         if ! ask_yes_no "Skip ZFS installation?" "default_yes"; then
             install_zfs || { log_error "ZFS installation failed — cannot continue with storage setup."; return 1; }
         fi
     else
         install_zfs || { log_error "ZFS installation failed — cannot continue with storage setup."; return 1; }
+    fi
+
+    # Check for existing pools
+    local existing_pools
+    existing_pools=$(zpool list -H -o name 2>/dev/null)
+    if [[ -n "$existing_pools" ]]; then
+        log_info "Existing ZFS pool(s) found:"
+        zpool list 2>&1
+        echo ""
+        zfs list 2>&1
+        echo ""
+        ZFS_POOL_NAME=$(echo "$existing_pools" | head -1)
+        log_success "Using existing pool: $ZFS_POOL_NAME"
+        return 0
     fi
 
     # Create pool

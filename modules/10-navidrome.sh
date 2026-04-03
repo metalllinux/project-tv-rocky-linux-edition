@@ -6,10 +6,21 @@ DATASETS_CONF="$PROJECT_ROOT/config/datasets.conf"
 run() {
     log_section "Deploying Navidrome Music Server"
 
-    # Update music path from datasets.conf
-    if [[ -f "$DATASETS_CONF" ]]; then
+    # Check if already deployed
+    if kubectl get deployment navidrome -n "$K8S_NAMESPACE" &>/dev/null; then
+        log_info "Navidrome is already deployed:"
+        kubectl get pods -n "$K8S_NAMESPACE" -l app=navidrome 2>&1
+        if ! ask_yes_no "Redeploy Navidrome?" "default_no"; then
+            log_success "Navidrome — already running"
+            return 0
+        fi
+    fi
+
+    # Update music path from storage-paths.conf
+    local storage_conf="$PROJECT_ROOT/config/storage-paths.conf"
+    if [[ -f "$storage_conf" ]]; then
         local music_mount
-        music_mount=$(grep '^music:' "$DATASETS_CONF" 2>/dev/null | cut -d: -f2)
+        music_mount=$(grep '^NAVIDROME_MUSIC=' "$storage_conf" 2>/dev/null | cut -d= -f2)
         if [[ -n "$music_mount" ]]; then
             log_info "Setting music path to: $music_mount"
             sed -i "s|path: /mnt/mediapool/music|path: ${music_mount}|" \

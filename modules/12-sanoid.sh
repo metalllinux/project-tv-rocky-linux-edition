@@ -57,7 +57,7 @@ run() {
     local yearly_keep
     yearly_keep=$(ask_text "How many yearly snapshots to keep?" "0")
 
-    local timer_calendar="*:0/60"
+    local timer_calendar="hourly"
     local timer_desc="every hour"
 
     if (( hourly_keep > 0 )); then
@@ -81,11 +81,11 @@ run() {
                 echo "Enter a systemd OnCalendar value:"
                 echo "  Examples: *:0/10 (every 10 min), *-*-* 0/2:00 (every 2 hours)"
                 local custom_cal
-                custom_cal=$(ask_text "OnCalendar value" "*:0/60")
+                custom_cal=$(ask_text "OnCalendar value" "hourly")
                 timer_calendar="$custom_cal"
                 timer_desc="custom ($custom_cal)"
                 ;;
-            *) timer_calendar="*:0/60"; timer_desc="every hour" ;;
+            *) timer_calendar="hourly"; timer_desc="every hour" ;;
         esac
     fi
 

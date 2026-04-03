@@ -134,6 +134,29 @@ Installs full upstream Kubernetes via kubeadm:
 
 Each application is deployed as Kubernetes Deployments with Services, ConfigMaps, and Secrets. Media is accessed via PersistentVolumes backed by ZFS dataset host paths.
 
+### TV channel scanning (module 07)
+
+After Mirakurun is deployed, the installer offers to scan for TV channels. Three scan types are available:
+
+1. **Terrestrial (GR)** — local broadcast channels (NHK, commercial stations, regional channels)
+2. **BS satellite** — free-to-air satellite channels
+3. **CS satellite** — premium satellite channels
+
+Each scan takes a few minutes and reports how many channels were found. Scanned channels are saved to `/var/lib/project-tv/mirakurun/config/channels.yml` and persist across pod restarts.
+
+You can re-scan at any time from the Mirakurun web UI or via the API:
+
+```bash
+# Terrestrial
+curl -X PUT "http://<host-ip>:30772/api/config/channels/scan?type=GR&setDisabledOnAdd=false"
+
+# BS satellite
+curl -X PUT "http://<host-ip>:30772/api/config/channels/scan?type=BS&setDisabledOnAdd=false"
+
+# CS satellite
+curl -X PUT "http://<host-ip>:30772/api/config/channels/scan?type=CS&setDisabledOnAdd=false"
+```
+
 ### Jellyfin library refresh (module 11)
 
 Replaces the VM-based xdotool hack from v2 with a Kubernetes CronJob that calls the Jellyfin REST API:

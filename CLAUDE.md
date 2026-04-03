@@ -28,6 +28,8 @@ Kubernetes-based media server installer for Rocky Linux 10. Successor to Project
 | Elasticsearch | 9200 | ClusterIP | bbilly1/tubearchivist-es |
 | Redis | 6379 | ClusterIP | redis/redis-stack-server |
 | Navidrome | 4533 | 30453 | deluan/navidrome |
+| Prometheus | 9090 | 30090 | prom/prometheus |
+| Grafana | 3000 | 30300 | grafana/grafana |
 
 ### Hardware (deployment target: `vector`)
 
@@ -44,11 +46,24 @@ config/defaults.conf    # Default values (images, ports, timezone)
 config/datasets.conf    # Generated at install time (ZFS dataset names:mount paths)
 lib/                    # Shared bash functions (logging, prompts, k8s-helpers, validators)
 modules/00-20*.sh       # Installer modules (each has a run() function)
-manifests/              # Kubernetes YAML (epgstation/, jellyfin/, tube-archivist/, navidrome/, cronjobs/, storage/)
+manifests/              # Kubernetes YAML (epgstation/, jellyfin/, tube-archivist/, navidrome/, cronjobs/, storage/, prometheus/, grafana/)
 drivers/px4_drv/        # RPM spec and build script
 test/                   # Kickstart files, TAP test scripts, test orchestrator
 logs/                   # Created at runtime (gitignored)
 ```
+
+## Module execution order
+
+System setup first, then desktop/firewall, then K8s apps, then monitoring:
+
+```
+00 Preflight → 01 Timezone → 02 ZFS → 03 Kubernetes → 04 Namespace → 05 Storage → 06 px4_drv
+→ 17 Firewall → 16 SDDM → 15 Browser → 18 Desktop apps → 14 KDE → 12 Sanoid
+→ 07 EPGStation → 08 Jellyfin → 09 Tube Archivist → 10 Navidrome → 11 Jellyfin refresh
+→ 13 Rsync → 19 Prometheus → 20 Grafana
+```
+
+Module numbers are fixed (match filenames) but execution order is set by `MODULE_ORDER` in `install.sh`.
 
 ## Key conventions
 
@@ -59,7 +74,12 @@ logs/                   # Created at runtime (gitignored)
 - Secrets use `CHANGE_ME_*` placeholders — the installer module replaces these with user input via `sed`
 - Jellyfin deployment is generated dynamically by `modules/08-jellyfin.sh` from `config/datasets.conf`
 - The `config/datasets.conf` format is: `dataset_name:mount_point` (one per line)
-- Module 05 (storage) reads `datasets.conf` and generates PV/PVC YAML at install time
+- `config/storage-paths.conf` maps apps to directories: `EPGSTATION_RECORDED=/mnt/mediapool/tv` etc.
+- Module 05 (storage) prompts user to assign directories to each app, generates PV/PVC from datasets.conf
+- Works with ZFS (user picks from existing datasets) or NVMe-only (user creates custom directories)
+- All app modules (07-10, 18-20) read from `storage-paths.conf` for media paths
+- Pod runtime data stays on NVMe (`/var/lib/project-tv/*`), only media content goes to ZFS or user-chosen paths
+- Module number input accepts single digits (auto zero-padded: `2` → `02`)
 
 ## Custom ISO build
 
@@ -130,12 +150,28 @@ The custom ISO auto-installs Rocky Linux 10 with all prerequisites, then install
 ### Sanoid
 - Not available in Rocky/EPEL repos — must install from GitHub
 - Requires Perl dependencies: `perl-Config-IniFiles`, `perl-Capture-Tiny`, `perl-Getopt-Long`
+- Systemd timer: use `hourly` not `*:0/60` (invalid calendar syntax, minute field max is 59)
 
-### Timezone module
-- `timedatectl list-timezones | grep -qx` can fail under `set -o pipefail` + `exec > >(tee ...)` — use `/usr/share/zoneinfo/` file check instead
+### pipefail + grep -q / pipe issues
+- `lsmod | grep -q` and `timedatectl list-timezones | grep -qx` fail under `set -o pipefail` + `exec > >(tee ...)` — `grep -q` closes the pipe early, upstream command gets SIGPIPE, pipeline returns non-zero
+- **Fix**: Use `/sys/module/<name>` directory checks instead of `lsmod | grep`, `/usr/share/zoneinfo/` file check instead of `timedatectl | grep`
+- This affects ALL modules — never use `cmd | grep -q` for checks when `pipefail` is active
 
 ### Deployment timeouts
-- First image pull on fresh cluster can exceed 120s — use 300s for MariaDB, Mirakurun, and similar
+- First image pull on fresh cluster can exceed 120s — use 300s for MariaDB, Mirakurun, Prometheus, Grafana, and similar
+
+### Kubernetes manifest pitfalls
+- **Never hardcode `nodeSelector` hostnames** — single-node cluster hostname varies per install
+- **hostPath permissions**: Prometheus runs as UID 65534 (nobody), Grafana as UID 472 — `chown` the data dirs in the module before deploying
+
+### Desktop applications
+- **fcitx5-mozc**: Not available in Rocky 10 repos — use `ibus-anthy` for Japanese input
+- **SeaDrive**: Not on Flathub, RPM repo unresponsive — install via AppImage from Seafile's Linux client URL
+- **xdg-settings**: Fails when run as root — use `su - $SUDO_USER -c` to run as the invoking user
+
+### Module re-run safety
+- ZFS module (02) must detect existing pools and skip pool creation on re-run
+- Modules should be idempotent — re-running should not break or duplicate resources
 
 ## Important notes
 

@@ -46,7 +46,9 @@ MODULE_DESC=(
 )
 
 # Module order
-MODULE_ORDER=(00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20)
+# System setup first (00-06), then desktop/firewall/storage (12,14-18),
+# then K8s apps (07-11), then monitoring (13,19-20)
+MODULE_ORDER=(00 01 02 03 04 05 06 17 16 15 18 14 12 07 08 09 10 11 13 19 20)
 
 # Status tracking file
 STATUS_FILE="$PROJECT_ROOT/logs/.install-status"
@@ -151,7 +153,7 @@ show_module_menu() {
     echo ""
     echo "Available modules:"
     echo ""
-    for mod in "${MODULE_ORDER[@]}"; do
+    for mod in $(printf '%s\n' "${!MODULE_DESC[@]}" | sort -n); do
         local status
         status=$(get_module_status "$mod")
         local marker=""
@@ -230,7 +232,11 @@ main() {
                 ;;
             2)
                 show_module_menu
-                read -rp "Enter module number (00-20): " mod
+                read -rp "Enter module number (0-20): " mod
+                # Zero-pad single digits (e.g. 2 -> 02)
+                if [[ "$mod" =~ ^[0-9]$ ]]; then
+                    mod="0$mod"
+                fi
                 if [[ -n "${MODULE_DESC[$mod]+x}" ]]; then
                     run_module "$mod"
                 else

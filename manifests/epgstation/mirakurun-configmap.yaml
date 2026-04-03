@@ -13,7 +13,7 @@ data:
         - CS
       command: >-
         recpt1 --device /dev/px4video0 --lnb 15 <channel> - -
-      decoder: ~
+      decoder: arib-b25-stream-test
       isDisabled: false
 
     - name: PX-W3PE5-S2
@@ -22,7 +22,7 @@ data:
         - CS
       command: >-
         recpt1 --device /dev/px4video1 --lnb 15 <channel> - -
-      decoder: ~
+      decoder: arib-b25-stream-test
       isDisabled: false
 
     - name: PX-W3PE5-T1
@@ -30,7 +30,7 @@ data:
         - GR
       command: >-
         recpt1 --device /dev/px4video2 <channel> - -
-      decoder: ~
+      decoder: arib-b25-stream-test
       isDisabled: false
 
     - name: PX-W3PE5-T2
@@ -38,7 +38,7 @@ data:
         - GR
       command: >-
         recpt1 --device /dev/px4video3 <channel> - -
-      decoder: ~
+      decoder: arib-b25-stream-test
       isDisabled: false
 
   channels.yml: |

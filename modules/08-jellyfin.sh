@@ -7,11 +7,34 @@ DATASETS_CONF="$PROJECT_ROOT/config/datasets.conf"
 generate_jellyfin_deployment() {
     local deploy_file="$PROJECT_ROOT/manifests/jellyfin/deployment-generated.yaml"
 
-    # Read datasets
+    # Read media paths from storage-paths.conf or fall back to datasets.conf
     local volume_mounts=""
     local volumes=""
+    local storage_conf="$PROJECT_ROOT/config/storage-paths.conf"
 
-    if [[ -f "$DATASETS_CONF" ]]; then
+    if [[ -f "$storage_conf" ]]; then
+        local jellyfin_media
+        jellyfin_media=$(grep '^JELLYFIN_MEDIA=' "$storage_conf" 2>/dev/null | cut -d= -f2)
+        local idx=0
+        for media_path in $jellyfin_media; do
+            local dir_name
+            dir_name=$(basename "$media_path")
+            local k8s_name
+            k8s_name=$(echo "$dir_name" | tr '[:upper:]' '[:lower:]' | tr '_' '-')
+
+            volume_mounts="${volume_mounts}
+        - name: media-${k8s_name}
+          mountPath: /data/${dir_name}
+          readOnly: true"
+
+            volumes="${volumes}
+      - name: media-${k8s_name}
+        hostPath:
+          path: ${media_path}
+          type: DirectoryOrCreate"
+            idx=$((idx + 1))
+        done
+    elif [[ -f "$DATASETS_CONF" ]]; then
         while IFS=: read -r ds_name ds_mount; do
             [[ "$ds_name" =~ ^#.*$ ]] && continue
             [[ -z "$ds_name" ]] && continue
@@ -104,6 +127,16 @@ EOF
 
 run() {
     log_section "Deploying Jellyfin"
+
+    # Check if already deployed
+    if kubectl get deployment jellyfin -n "$K8S_NAMESPACE" &>/dev/null; then
+        log_info "Jellyfin is already deployed:"
+        kubectl get pods -n "$K8S_NAMESPACE" -l app=jellyfin 2>&1
+        if ! ask_yes_no "Redeploy Jellyfin?" "default_no"; then
+            log_success "Jellyfin — already running"
+            return 0
+        fi
+    fi
 
     # Ensure host directories
     mkdir -p /var/lib/project-tv/jellyfin/{config,cache}

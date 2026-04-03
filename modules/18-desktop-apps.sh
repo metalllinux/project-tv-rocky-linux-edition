@@ -23,38 +23,36 @@ run() {
 }
 
 install_seadrive() {
-    log_info "Installing SeaDrive desktop client..."
+    log_info "Installing SeaDrive desktop client via AppImage..."
 
-    local rocky_major
-    rocky_major=$(grep '^VERSION_ID=' /etc/os-release | cut -d= -f2 | tr -d '"' | cut -d. -f1)
+    local target_user="${SUDO_USER:-$(whoami)}"
+    local target_home
+    target_home=$(eval echo "~$target_user")
+    local appimage_dir="$target_home/Applications"
+    local appimage_url="https://linux-clients.seafile.com/seadrive-sharedlib/seadrive-gui_2.0.28_x86-64.AppImage"
+    local appimage_file="$appimage_dir/SeaDrive.AppImage"
 
-    # Try Flatpak first
-    if command -v flatpak &>/dev/null; then
-        log_info "Checking Flathub for SeaDrive..."
-        if flatpak search seadrive 2>/dev/null | grep -qi seadrive; then
-            log_cmd "Install SeaDrive via Flatpak" flatpak install -y flathub com.seafile.seadrive-gui
-            log_success "SeaDrive installed via Flatpak"
-            return 0
-        fi
-    fi
+    mkdir -p "$appimage_dir"
 
-    # Try RPM repo
-    log_info "Attempting RPM installation..."
-    cat > /etc/yum.repos.d/seadrive.repo << EOF
-[seadrive]
-name=seadrive
-baseurl=https://linux-clients.seafile.com/seadrive-packages/rocky\$releasever/
-gpgcheck=0
-enabled=1
+    log_info "Downloading SeaDrive AppImage..."
+    if curl -fSL --connect-timeout 15 -o "$appimage_file" "$appimage_url" 2>&1; then
+        chmod +x "$appimage_file"
+        chown "$target_user:$target_user" "$appimage_dir" "$appimage_file"
+
+        # Create desktop entry
+        cat > "$target_home/.local/share/applications/seadrive.desktop" << EOF
+[Desktop Entry]
+Type=Application
+Name=SeaDrive
+Comment=Seafile virtual drive client
+Exec=$appimage_file
+Icon=seafile
+Categories=Network;FileTransfer;
 EOF
-
-    if dnf install -y seadrive-gui 2>&1; then
-        log_success "SeaDrive installed via RPM"
+        chown "$target_user:$target_user" "$target_home/.local/share/applications/seadrive.desktop"
+        log_success "SeaDrive installed at $appimage_file"
     else
-        log_warn "SeaDrive RPM installation failed. You may need to install manually."
-        log_info "Visit: https://www.seafile.com/en/download/"
-        # Clean up repo file if install failed
-        rm -f /etc/yum.repos.d/seadrive.repo
+        log_warn "SeaDrive download failed. Download manually from: https://www.seafile.com/en/download/"
     fi
 }
 

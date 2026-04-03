@@ -42,7 +42,8 @@ spec:
           echo "Mirakurun is ready"
       containers:
       - name: epgstation
-        image: l3tnun/epgstation:latest
+        image: localhost/epgstation-ffmpeg:latest
+        imagePullPolicy: Never
         ports:
         - containerPort: 8888
           name: http

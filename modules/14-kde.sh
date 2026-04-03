@@ -47,17 +47,19 @@ EOF
         log_success "Screen power saving disabled"
     fi
 
-    # Japanese input (fcitx5-mozc)
-    if ask_yes_no "Install Japanese input (fcitx5-mozc)?"; then
-        log_cmd "Install fcitx5-mozc" dnf install -y fcitx5 fcitx5-mozc fcitx5-configtool
-
-        # Set environment variables
-        cat > /etc/profile.d/fcitx5.sh << 'EOF'
-export GTK_IM_MODULE=fcitx
-export QT_IM_MODULE=fcitx
-export XMODIFIERS=@im=fcitx
+    # Japanese input (ibus-anthy — fcitx5-mozc is not available in Rocky 10 repos)
+    if ask_yes_no "Install Japanese input (ibus-anthy)?"; then
+        if ! log_cmd "Install ibus-anthy" dnf install -y ibus ibus-anthy ibus-gtk3 ibus-gtk4 ibus-setup; then
+            log_error "Japanese input installation failed"
+        else
+            # Set environment variables for IBus
+            cat > /etc/profile.d/ibus-japanese.sh << 'EOF'
+export GTK_IM_MODULE=ibus
+export QT_IM_MODULE=ibus
+export XMODIFIERS=@im=ibus
 EOF
-        log_success "fcitx5-mozc installed"
+            log_success "ibus-anthy installed — log out and back in, then configure via IBus Preferences"
+        fi
     fi
 
     log_success "KDE customisation complete"
