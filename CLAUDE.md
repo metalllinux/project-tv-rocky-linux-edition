@@ -43,7 +43,7 @@ install.sh              # Main entry point (interactive menu, run as root)
 config/defaults.conf    # Default values (images, ports, timezone)
 config/datasets.conf    # Generated at install time (ZFS dataset names:mount paths)
 lib/                    # Shared bash functions (logging, prompts, k8s-helpers, validators)
-modules/00-18*.sh       # Installer modules (each has a run() function)
+modules/00-20*.sh       # Installer modules (each has a run() function)
 manifests/              # Kubernetes YAML (epgstation/, jellyfin/, tube-archivist/, navidrome/, cronjobs/, storage/)
 drivers/px4_drv/        # RPM spec and build script
 test/                   # Kickstart files, TAP test scripts, test orchestrator
@@ -79,7 +79,8 @@ The custom ISO auto-installs Rocky Linux 10 with all prerequisites, then install
 ### Critical details
 
 - **Kickstart path**: Use `inst.ks=hd:LABEL=Rocky-10-1-x86_64-dvd:/ks.cfg` — the `file:/ks.cfg` method is unreliable on Rocky 10
-- **Boot mode**: `text` directive in kickstart + `inst.text` on kernel cmdline — no GUI Anaconda
+- **Boot mode**: `graphical` directive in kickstart — user confirms spokes before install begins
+- **SSH during install**: `inst.sshd` on kernel cmdline — SSH as root (no password) to inspect Anaconda logs
 - **3 GRUB configs must all be updated**: `boot/grub2/grub.cfg` (BIOS), `EFI/BOOT/grub.cfg` (EFI), and the grub.cfg inside `images/efiboot.img` (mount as loop, copy, unmount)
 - **Partitioning**: Explicit `part`/`logvol` (not `autopart`) — keeps sda/sdb untouched for ZFS. Requires `bootloader`, `/boot/efi`, and `/boot` directives
 - **USB target**: `/dev/sdc` is the Verbatim STORE N GO (57.8G) on the build host
@@ -88,7 +89,7 @@ The custom ISO auto-installs Rocky Linux 10 with all prerequisites, then install
 
 | Device | Size | Purpose |
 |--------|------|---------|
-| nvme0n1 | 476.9G | OS (Rocky Linux, LVM: root + swap) |
+| nvme0n1 | 476.9G | OS (Rocky Linux, LVM: 70G root + 8G swap + rest /home) |
 | sda | 10.9T | ZFS mirror pool (ST12000NM0127) |
 | sdb | 10.9T | ZFS mirror pool (ST12000NM0127) |
 
@@ -107,6 +108,34 @@ The custom ISO auto-installs Rocky Linux 10 with all prerequisites, then install
 - **Add a new K8s app**: Create manifests in `manifests/<app>/`, create deployer module in `modules/`
 - **Update px4_drv version**: Edit version in `drivers/px4_drv/px4_drv-dkms.spec`, update changelog
 - **Add documentation page**: Create `.md` file in `~/Documents/projects/github_pages/_linux_journey/courses/project-tv-v3/` with frontmatter (title, category: project-tv-v3, tags)
+
+## Known issues and fixes (from real-hardware testing)
+
+### Kickstart / ISO
+- **Installation source**: Use `harddrive --partition=LABEL=Rocky-10-1-x86_64-dvd --dir=/` — `cdrom` directive fails on USB boot ("Found no CD-ROM")
+- **Explicit repos required**: Add `repo --name="BaseOS"` and `repo --name="AppStream"` pointing to `file:///run/install/repo/` paths
+- **Project files copy**: `%post` runs in chroot where `/home` LV is mounted. Use `%post --nochroot` to copy to `/mnt/sysimage/tmp/`, then chroot `%post` moves to `/home/howard/`
+- **Kernel version mismatch**: KDE install pulls newer kernel lacking `kernel-modules-extra`. Use `--exclude='kernel*'` on the dnf install line
+- **kernel-modules-extra**: Must be in `%packages` — provides `xt_conntrack`, `br_netfilter`, etc. needed by kube-proxy
+
+### Kubernetes networking
+- **kube-proxy requires**: `nf_conntrack`, `xt_conntrack`, `xt_comment`, `xt_mark`, `ip_tables`, `ip6_tables`, `nf_nat`, `br_netfilter`, `overlay`
+- All must be loaded BEFORE `kubeadm init` and persisted in `/etc/modules-load.d/k8s.conf`
+- Without these, kube-proxy fails to create iptables rules, Flannel can't reach API server via ClusterIP, all pods stuck in ContainerCreating
+
+### px4_drv
+- Rocky 10 kernel 6.12 backported the `module_init()` requirement from upstream 6.15.4
+- The px4_drv source gates the fix behind `KERNEL_VERSION(6,15,4)` — must be patched to `KERNEL_VERSION(6,12,0)` for EL10
+
+### Sanoid
+- Not available in Rocky/EPEL repos — must install from GitHub
+- Requires Perl dependencies: `perl-Config-IniFiles`, `perl-Capture-Tiny`, `perl-Getopt-Long`
+
+### Timezone module
+- `timedatectl list-timezones | grep -qx` can fail under `set -o pipefail` + `exec > >(tee ...)` — use `/usr/share/zoneinfo/` file check instead
+
+### Deployment timeouts
+- First image pull on fresh cluster can exceed 120s — use 300s for MariaDB, Mirakurun, and similar
 
 ## Important notes
 
