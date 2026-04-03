@@ -7,8 +7,8 @@ run() {
     local tz
     tz=$(ask_text "Enter timezone" "$TIMEZONE")
 
-    # Validate timezone
-    if ! timedatectl list-timezones 2>/dev/null | grep -qx "$tz"; then
+    # Validate timezone (file check avoids pipefail issues with grep -q)
+    if [[ ! -f "/usr/share/zoneinfo/$tz" ]]; then
         log_error "Invalid timezone: $tz"
         log_info "List valid timezones with: timedatectl list-timezones"
         return 1

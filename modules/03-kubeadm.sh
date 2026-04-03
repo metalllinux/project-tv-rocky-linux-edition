@@ -41,14 +41,27 @@ install_containerd() {
 configure_kernel() {
     log_section "Configuring kernel modules and sysctl"
 
-    # Load required kernel modules
+    # Load required kernel modules (kube-proxy needs xt_* for iptables rules)
     cat > /etc/modules-load.d/k8s.conf << 'EOF'
 overlay
 br_netfilter
+nf_conntrack
+xt_conntrack
+xt_comment
+xt_mark
+ip_tables
+ip6_tables
+nf_nat
 EOF
 
-    log_cmd "Load overlay module" modprobe overlay
-    log_cmd "Load br_netfilter module" modprobe br_netfilter
+    local mod
+    for mod in overlay br_netfilter nf_conntrack xt_conntrack xt_comment xt_mark ip_tables ip6_tables nf_nat; do
+        if modprobe "$mod" 2>/dev/null; then
+            log_success "Loaded kernel module: $mod"
+        else
+            log_warn "Could not load kernel module: $mod (ensure kernel-modules-extra is installed)"
+        fi
+    done
 
     # Set required sysctl parameters
     cat > /etc/sysctl.d/k8s.conf << 'EOF'
@@ -147,7 +160,27 @@ install_flannel() {
     log_cmd "Install Flannel" kubectl apply -f \
         https://github.com/flannel-io/flannel/releases/latest/download/kube-flannel.yml
 
-    log_success "Flannel CNI installed"
+    log_success "Flannel CNI manifest applied"
+
+    # Wait for system pods to be operational
+    log_info "Waiting for Flannel, kube-proxy, and CoreDNS to be ready (timeout: 120s)..."
+    local timeout=120
+    local elapsed=0
+    while (( elapsed < timeout )); do
+        local not_ready
+        not_ready=$(kubectl get pods -A --no-headers 2>/dev/null | grep -v "Running\|Completed" | wc -l)
+        if (( not_ready == 0 )); then
+            log_success "All system pods are running"
+            kubectl get pods -A 2>&1
+            return 0
+        fi
+        sleep 10
+        elapsed=$((elapsed + 10))
+        log_info "  Waiting for $not_ready pod(s)... ($elapsed/${timeout}s)"
+    done
+
+    log_warn "Some system pods are not yet ready after ${timeout}s — continuing anyway"
+    kubectl get pods -A 2>&1
 }
 
 configure_single_node() {

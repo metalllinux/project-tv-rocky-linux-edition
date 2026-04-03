@@ -6,9 +6,25 @@ DATASETS_CONF="$PROJECT_ROOT/config/datasets.conf"
 run() {
     log_section "Sanoid ZFS Snapshot Management"
 
-    # Install Sanoid
+    # Install Sanoid dependencies
     log_cmd "Install EPEL" dnf install -y epel-release
-    log_cmd "Install Sanoid" dnf install -y sanoid
+    log_cmd "Install Sanoid dependencies" dnf install -y perl perl-Config-IniFiles perl-Capture-Tiny perl-Getopt-Long
+
+    # Install Sanoid from GitHub (not in Rocky/EPEL repos)
+    if command -v sanoid &>/dev/null; then
+        log_info "Sanoid is already installed: $(sanoid --version 2>&1 | head -1)"
+    else
+        local sanoid_tmp
+        sanoid_tmp=$(mktemp -d)
+        log_cmd "Clone Sanoid" git clone --depth 1 https://github.com/jimsalterjrs/sanoid.git "$sanoid_tmp/sanoid"
+        install -m 0755 "$sanoid_tmp/sanoid/sanoid" /usr/sbin/sanoid
+        install -m 0755 "$sanoid_tmp/sanoid/syncoid" /usr/sbin/syncoid
+        install -m 0755 "$sanoid_tmp/sanoid/findoid" /usr/sbin/findoid
+        mkdir -p /etc/sanoid
+        install -m 0644 "$sanoid_tmp/sanoid/sanoid.defaults.conf" /etc/sanoid/sanoid.defaults.conf
+        rm -rf "$sanoid_tmp"
+        log_success "Sanoid installed from source"
+    fi
 
     # Read pool name from datasets config
     local pool_name="$ZFS_POOL_NAME"
@@ -18,7 +34,62 @@ run() {
         [[ -n "$conf_pool" ]] && pool_name="$conf_pool"
     fi
 
-    # Configure Sanoid
+    # Configure snapshot policy
+    echo ""
+    echo "Snapshot Configuration"
+    echo "======================"
+    echo ""
+    echo "Sanoid takes automatic ZFS snapshots and prunes old ones."
+    echo ""
+
+    local daily_keep
+    daily_keep=$(ask_text "How many daily snapshots to keep?" "60")
+
+    local hourly_keep
+    hourly_keep=$(ask_text "How many hourly snapshots to keep?" "24")
+
+    local weekly_keep
+    weekly_keep=$(ask_text "How many weekly snapshots to keep?" "4")
+
+    local monthly_keep
+    monthly_keep=$(ask_text "How many monthly snapshots to keep?" "12")
+
+    local yearly_keep
+    yearly_keep=$(ask_text "How many yearly snapshots to keep?" "0")
+
+    local timer_calendar="*:0/60"
+    local timer_desc="every hour"
+
+    if (( hourly_keep > 0 )); then
+        echo ""
+        echo "Since hourly snapshots are enabled, how often should Sanoid run?"
+        echo ""
+        echo "  [1] Every hour (default)"
+        echo "  [2] Every 30 minutes"
+        echo "  [3] Every 15 minutes"
+        echo "  [4] Custom interval"
+        echo ""
+        local schedule_choice
+        read -rp "Select an option (1-4) [1]: " schedule_choice
+        schedule_choice="${schedule_choice:-1}"
+
+        case "$schedule_choice" in
+            2) timer_calendar="*:0/30"; timer_desc="every 30 minutes" ;;
+            3) timer_calendar="*:0/15"; timer_desc="every 15 minutes" ;;
+            4)
+                echo ""
+                echo "Enter a systemd OnCalendar value:"
+                echo "  Examples: *:0/10 (every 10 min), *-*-* 0/2:00 (every 2 hours)"
+                local custom_cal
+                custom_cal=$(ask_text "OnCalendar value" "*:0/60")
+                timer_calendar="$custom_cal"
+                timer_desc="custom ($custom_cal)"
+                ;;
+            *) timer_calendar="*:0/60"; timer_desc="every hour" ;;
+        esac
+    fi
+
+    # Write Sanoid config
     mkdir -p /etc/sanoid
     cat > /etc/sanoid/sanoid.conf << EOF
 # Sanoid configuration for Project TV - Rocky Edition
@@ -30,11 +101,11 @@ run() {
 
 [template_production]
   frequently = 0
-  hourly = 0
-  daily = 60
-  weekly = 0
-  monthly = 0
-  yearly = 0
+  hourly = ${hourly_keep}
+  daily = ${daily_keep}
+  weekly = ${weekly_keep}
+  monthly = ${monthly_keep}
+  yearly = ${yearly_keep}
   autosnap = yes
   autoprune = yes
 EOF
@@ -42,13 +113,24 @@ EOF
     log_info "Sanoid configuration:"
     cat /etc/sanoid/sanoid.conf
 
-    # Create systemd timer
-    cat > /etc/systemd/system/sanoid.timer << 'EOF'
+    # Create systemd service and timer
+    cat > /etc/systemd/system/sanoid.service << 'EOF'
 [Unit]
-Description=Run Sanoid every 15 minutes
+Description=Sanoid ZFS Snapshot Management
+Requires=zfs.target
+After=zfs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/sbin/sanoid --take-snapshots --verbose
+EOF
+
+    cat > /etc/systemd/system/sanoid.timer << EOF
+[Unit]
+Description=Run Sanoid ${timer_desc}
 
 [Timer]
-OnCalendar=*:0/15
+OnCalendar=${timer_calendar}
 Persistent=true
 
 [Install]
@@ -70,6 +152,6 @@ EOF
     log_cmd "Reload systemd" systemctl daemon-reload
     log_cmd "Enable sanoid timer" systemctl enable --now sanoid.timer
 
-    log_success "Sanoid configured with 60-day daily snapshots, running every 15 minutes"
+    log_success "Sanoid configured: ${hourly_keep} hourly, ${daily_keep} daily, ${weekly_keep} weekly, ${monthly_keep} monthly, ${yearly_keep} yearly — running ${timer_desc}"
     systemctl status sanoid.timer 2>&1 | head -10
 }

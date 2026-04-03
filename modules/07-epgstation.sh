@@ -46,14 +46,14 @@ run() {
     log_cmd "Deploy MariaDB" kubectl apply -f "$PROJECT_ROOT/manifests/epgstation/mariadb-deployment.yaml"
     log_cmd "Deploy MariaDB Service" kubectl apply -f "$PROJECT_ROOT/manifests/epgstation/mariadb-service.yaml"
 
-    # Wait for MariaDB
-    k8s_wait_deployment "mariadb" 120
+    # Wait for MariaDB (first pull is ~400MB, allow extra time)
+    k8s_wait_deployment "mariadb" 300
 
     log_cmd "Deploy Mirakurun" kubectl apply -f "$PROJECT_ROOT/manifests/epgstation/mirakurun-deployment.yaml"
     log_cmd "Deploy Mirakurun Service" kubectl apply -f "$PROJECT_ROOT/manifests/epgstation/mirakurun-service.yaml"
 
-    # Wait for Mirakurun
-    k8s_wait_deployment "mirakurun" 120
+    # Wait for Mirakurun (first pull can be slow)
+    k8s_wait_deployment "mirakurun" 300
 
     log_cmd "Deploy EPGStation" kubectl apply -f "$PROJECT_ROOT/manifests/epgstation/epgstation-deployment.yaml"
     log_cmd "Deploy EPGStation Service" kubectl apply -f "$PROJECT_ROOT/manifests/epgstation/epgstation-service.yaml"

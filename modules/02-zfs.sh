@@ -63,12 +63,11 @@ create_pool() {
         echo "  $line"
     done
     echo ""
-    echo "Disk IDs (recommended for pool creation):"
-    echo "==========================================="
-    ls -1 /dev/disk/by-id/ 2>/dev/null | grep -v "part\|wwn" | while read -r line; do
-        echo "  /dev/disk/by-id/$line"
-    done
-    echo ""
+
+    # Build array of candidate disk IDs (physical disks only)
+    local -a candidate_disks=()
+    mapfile -t candidate_disks < <(ls -1 /dev/disk/by-id/ 2>/dev/null | grep -E '^(ata|scsi)-' | grep -v 'part')
+
 
     # Pool name
     local pool_name
@@ -114,13 +113,40 @@ create_pool() {
 
     for ((i = 1; i <= disk_count; i++)); do
         local disk
-        disk=$(ask_text "Enter disk $i (run 'ls -l /dev/disk/by-id/' to list disk IDs)")
+        local selection
+        echo ""
+        echo "Select disk $i — enter a number or type a full path:"
+        echo ""
+        if (( ${#candidate_disks[@]} == 0 )); then
+            ls -1 /dev/disk/by-id/ 2>/dev/null | grep -v "part\|wwn" | while read -r line; do
+                echo "  /dev/disk/by-id/$line"
+            done
+        else
+            for j in "${!candidate_disks[@]}"; do
+                printf "  [%d] /dev/disk/by-id/%s\n" "$((j + 1))" "${candidate_disks[$j]}"
+            done
+        fi
+        echo ""
+        read -rp "  Disk $i: " selection
+
+        # If the user entered a number, look it up in the candidate list
+        if [[ "$selection" =~ ^[0-9]+$ ]] && (( selection >= 1 && selection <= ${#candidate_disks[@]} )); then
+            disk="/dev/disk/by-id/${candidate_disks[$((selection - 1))]}"
+        elif [[ "$selection" == /dev/* ]]; then
+            # Full path provided
+            disk="$selection"
+        else
+            # Assume it's a disk ID name — prepend the prefix
+            disk="/dev/disk/by-id/$selection"
+        fi
+
         if [[ ! -e "$disk" ]]; then
             log_warn "$disk does not exist. Are you sure?"
             if ! ask_yes_no "Continue with this disk path?"; then
                 return 1
             fi
         fi
+        echo "  Selected: $disk"
         disks+=("$disk")
     done
 
@@ -143,14 +169,15 @@ create_pool() {
         return 1
     fi
 
-    # Check if any disks have existing filesystems
+    # Check if any disks have existing filesystems or partition tables
     local force_flag=""
     local has_existing=false
     for d in "${disks[@]}"; do
-        if blkid "$d" &>/dev/null || blkid "${d}-part"* &>/dev/null 2>&1; then
+        if blkid "$d" &>/dev/null || blkid "${d}-part"* &>/dev/null 2>&1 || \
+           wipefs "$d" 2>/dev/null | grep -q '[a-z]'; then
             has_existing=true
             log_warn "Disk $d contains an existing filesystem or partition table:"
-            blkid "$d"* 2>/dev/null | while read -r line; do echo "  $line"; done
+            wipefs "$d" 2>/dev/null | while read -r line; do echo "  $line"; done
         fi
     done
     if $has_existing; then

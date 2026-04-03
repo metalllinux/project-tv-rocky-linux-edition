@@ -41,10 +41,12 @@ MODULE_DESC=(
     [16]="SDDM autologin"
     [17]="Firewall rules"
     [18]="Desktop applications"
+    [19]="Prometheus monitoring"
+    [20]="Grafana dashboards"
 )
 
 # Module order
-MODULE_ORDER=(00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18)
+MODULE_ORDER=(00 01 02 03 04 05 06 07 08 09 10 11 12 13 14 15 16 17 18 19 20)
 
 # Status tracking file
 STATUS_FILE="$PROJECT_ROOT/logs/.install-status"
@@ -228,7 +230,7 @@ main() {
                 ;;
             2)
                 show_module_menu
-                read -rp "Enter module number (00-18): " mod
+                read -rp "Enter module number (00-20): " mod
                 if [[ -n "${MODULE_DESC[$mod]+x}" ]]; then
                     run_module "$mod"
                 else

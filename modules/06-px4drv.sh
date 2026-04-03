@@ -79,6 +79,14 @@ install_from_source() {
 
     cd "$src_dir/px4_drv" || return 1
 
+    # Patch for Rocky Linux 10 (kernel 6.12) — EL backported the objtool
+    # module_init() requirement from 6.15.4, so lower the version gate
+    local driver_module="driver/driver_module.c"
+    if [[ -f "$driver_module" ]] && grep -q 'KERNEL_VERSION(6,15,4)' "$driver_module"; then
+        log_info "Patching driver_module.c for kernel 6.12+ compatibility..."
+        sed -i 's/KERNEL_VERSION(6,15,4)/KERNEL_VERSION(6,12,0)/g' "$driver_module"
+    fi
+
     # Install via DKMS
     local dkms_name="px4_drv"
     local dkms_src="/usr/src/${dkms_name}-${version}"
@@ -96,7 +104,11 @@ install_from_source() {
     cp -f etc/it930x-firmware.bin /lib/firmware/
     cp -f etc/99-px4video.rules /etc/udev/rules.d/
 
-    # Register with DKMS
+    # Register with DKMS (remove old entry if present)
+    if dkms status -m "$dkms_name" -v "$version" 2>/dev/null | grep -q "$dkms_name"; then
+        log_info "Removing existing DKMS entry for ${dkms_name}/${version}..."
+        dkms remove -m "$dkms_name" -v "$version" --all 2>/dev/null || true
+    fi
     log_cmd "DKMS add" dkms add -m "$dkms_name" -v "$version"
     log_cmd "DKMS build" dkms build -m "$dkms_name" -v "$version"
     log_cmd "DKMS install" dkms install -m "$dkms_name" -v "$version"
