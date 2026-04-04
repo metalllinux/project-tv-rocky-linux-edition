@@ -15,7 +15,7 @@ run() {
     local server user remote_path
     server=$(ask_text "Backup server IP or hostname" "$BACKUP_SERVER")
     user=$(ask_text "SSH user on backup server" "$BACKUP_USER")
-    remote_path=$(ask_text "Remote base path (e.g. /mnt/backup)" "$BACKUP_PATH")
+    remote_path=$(ask_text "Remote base path" "$BACKUP_PATH")
 
     # Generate sync script
     local script_dir="/home/${SUDO_USER:-$(whoami)}/scripts"

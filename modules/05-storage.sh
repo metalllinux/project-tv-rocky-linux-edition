@@ -33,7 +33,7 @@ create_nvme_dirs() {
         echo ""
         echo "--- Directory $i of $num_dirs ---"
         local dir_name
-        dir_name=$(ask_text "Directory $i name (e.g. tv, music, films)")
+        dir_name=$(ask_text "Directory $i name (tv, music, films, etc.)")
         local dir_path
         dir_path=$(ask_text "Path for '$dir_name'" "$base_dir/$dir_name")
 
@@ -45,11 +45,18 @@ create_nvme_dirs() {
 }
 
 show_available_dirs() {
+    local target_user="${SUDO_USER:-$(whoami)}"
+    local nvme_base="/home/$target_user"
+
     echo ""
-    echo "Available directories:"
-    for i in "${!AVAILABLE_DIRS[@]}"; do
-        printf "  [%d] %s\n" "$((i + 1))" "${AVAILABLE_DIRS[$i]}"
-    done
+    if (( ${#AVAILABLE_DIRS[@]} > 0 )); then
+        echo "ZFS datasets:"
+        for i in "${!AVAILABLE_DIRS[@]}"; do
+            printf "  [%d] %s\n" "$((i + 1))" "${AVAILABLE_DIRS[$i]}"
+        done
+    fi
+    echo ""
+    echo "You can also type any path on the NVMe drive, such as $nvme_base/tv"
     echo ""
 }
 
@@ -105,56 +112,78 @@ prompt_app_path() {
 configure_storage_paths() {
     log_section "Storage Path Configuration"
 
+    local target_user="${SUDO_USER:-$(whoami)}"
+    local nvme_base="/home/$target_user"
+    local has_zfs=false
+    (( ${#AVAILABLE_DIRS[@]} > 0 )) && has_zfs=true
+
     echo ""
-    echo "Assign a storage path for each application."
-    echo "Enter a number from the list, or type a custom path."
-    echo ""
-
-    # Determine sensible defaults
-    local default_base=""
-    if (( ${#AVAILABLE_DIRS[@]} > 0 )); then
-        default_base=$(dirname "${AVAILABLE_DIRS[0]}")
+    echo "For each application, choose where to store its data."
+    if $has_zfs; then
+        echo "Enter a number to select a ZFS dataset, or type a full path for NVMe/custom storage."
     else
-        local target_user="${SUDO_USER:-$(whoami)}"
-        default_base="/home/$target_user/media"
-    fi
-
-    # Find likely defaults from available dirs
-    local default_tv="$default_base/tv"
-    local default_music="$default_base/music"
-    local default_youtube="$default_base/youtube"
-    local default_jellyfin=""
-    local default_rips="$default_base/rips"
-
-    # Try to match existing dirs
-    for d in "${AVAILABLE_DIRS[@]}"; do
-        case "$(basename "$d")" in
-            tv|recorded) default_tv="$d" ;;
-            music) default_music="$d" ;;
-            youtube) default_youtube="$d" ;;
-            rips|makemkv) default_rips="$d" ;;
-        esac
-    done
-
-    # For Jellyfin, default to all available dirs
-    if (( ${#AVAILABLE_DIRS[@]} > 0 )); then
-        default_jellyfin=$(printf '%s,' "${AVAILABLE_DIRS[@]}")
-        default_jellyfin="${default_jellyfin%,}"  # remove trailing comma
-    else
-        default_jellyfin="$default_base"
+        echo "Type a full path for each application's data directory."
     fi
 
     show_available_dirs
 
+    # Per-app prompt helper that shows ZFS + NVMe options
+    prompt_storage() {
+        local app_name="$1"
+        local zfs_default="$2"
+        local nvme_default="$3"
+        local multi="${4:-false}"
+
+        echo ""
+        echo "$app_name:"
+        if $has_zfs; then
+            echo "  Enter a number for ZFS, or type a path for NVMe/custom"
+            if [[ "$multi" == "true" ]]; then
+                echo "  (comma-separated for multiple paths)"
+            fi
+        fi
+
+        local default="$zfs_default"
+        # If no matching ZFS default, use NVMe
+        [[ -z "$default" ]] && default="$nvme_default"
+
+        local input
+        if [[ "$multi" == "true" ]]; then
+            input=$(ask_text "  Path" "$default")
+        else
+            input=$(ask_text "  Path" "$default")
+        fi
+
+        local resolved
+        resolved=$(resolve_path "$input" "$multi")
+        echo "  → $resolved" >&2
+        echo "$resolved"
+    }
+
+    # Determine ZFS-based defaults (try to match by name)
+    local zfs_tv="" zfs_music="" zfs_youtube="" zfs_rips="" zfs_jellyfin=""
+    for d in "${AVAILABLE_DIRS[@]}"; do
+        case "$(basename "$d")" in
+            tv|recorded) zfs_tv="$d" ;;
+            music) zfs_music="$d" ;;
+            youtube) zfs_youtube="$d" ;;
+            rips|makemkv) zfs_rips="$d" ;;
+        esac
+    done
+    if $has_zfs && (( ${#AVAILABLE_DIRS[@]} > 0 )); then
+        zfs_jellyfin=$(printf '%s,' "${AVAILABLE_DIRS[@]}")
+        zfs_jellyfin="${zfs_jellyfin%,}"
+    fi
+
     local epg_path jellyfin_paths navidrome_path ta_path makemkv_path prometheus_path grafana_path
 
-    epg_path=$(prompt_app_path "EPGStation recordings" "$default_tv")
-    jellyfin_paths=$(prompt_app_path "Jellyfin media libraries" "$default_jellyfin" "true")
-    navidrome_path=$(prompt_app_path "Navidrome music" "$default_music")
-    ta_path=$(prompt_app_path "Tube Archivist downloads" "$default_youtube")
-    makemkv_path=$(prompt_app_path "MakeMKV output" "$default_rips")
-    prometheus_path=$(prompt_app_path "Prometheus data" "/var/lib/project-tv/prometheus/data")
-    grafana_path=$(prompt_app_path "Grafana data" "/var/lib/project-tv/grafana/data")
+    epg_path=$(prompt_storage "EPGStation recordings" "$zfs_tv" "$nvme_base/tv")
+    jellyfin_paths=$(prompt_storage "Jellyfin media libraries" "$zfs_jellyfin" "$nvme_base/media" "true")
+    navidrome_path=$(prompt_storage "Navidrome music" "$zfs_music" "$nvme_base/music")
+    ta_path=$(prompt_storage "Tube Archivist downloads" "$zfs_youtube" "$nvme_base/youtube")
+    makemkv_path=$(prompt_storage "MakeMKV output" "$zfs_rips" "$nvme_base/rips")
+    prometheus_path=$(prompt_storage "Prometheus data" "" "/var/lib/project-tv/prometheus/data")
+    grafana_path=$(prompt_storage "Grafana data" "" "/var/lib/project-tv/grafana/data")
 
     # Create directories that don't exist
     local target_user="${SUDO_USER:-$(whoami)}"

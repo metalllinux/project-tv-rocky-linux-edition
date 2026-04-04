@@ -234,7 +234,7 @@ create_datasets() {
 
         local ds_name
         while true; do
-            ds_name=$(ask_text "Dataset $i name (e.g. anime, films, music)")
+            ds_name=$(ask_text "Dataset $i name (anime, films, music, etc.)")
             if validate_dataset_name "$ds_name"; then
                 break
             fi

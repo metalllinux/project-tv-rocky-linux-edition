@@ -82,14 +82,37 @@ run() {
         failed=1
     fi
 
-    # Check kernel-devel availability
-    log_info "Checking kernel-devel..."
-    if rpm -q "kernel-devel-$(uname -r)" &>/dev/null; then
-        log_success "kernel-devel matches running kernel"
+    # Install prerequisites if missing
+    log_info "Checking prerequisites..."
+    local missing_pkgs=()
+
+    rpm -q "kernel-devel-$(uname -r)" &>/dev/null || missing_pkgs+=("kernel-devel-$(uname -r)")
+    rpm -q "kernel-modules-extra-$(uname -r)" &>/dev/null || missing_pkgs+=("kernel-modules-extra-$(uname -r)")
+    rpm -q git &>/dev/null || missing_pkgs+=("git")
+    rpm -q gcc &>/dev/null || missing_pkgs+=("gcc")
+    rpm -q make &>/dev/null || missing_pkgs+=("make")
+    rpm -q curl &>/dev/null || missing_pkgs+=("curl")
+    rpm -q podman &>/dev/null || missing_pkgs+=("podman")
+    rpm -q epel-release &>/dev/null || missing_pkgs+=("epel-release")
+
+    if (( ${#missing_pkgs[@]} > 0 )); then
+        log_info "Installing missing prerequisites: ${missing_pkgs[*]}"
+        if ask_yes_no "Install ${#missing_pkgs[@]} missing package(s)?"; then
+            dnf install -y "${missing_pkgs[@]}" 2>&1 || true
+            # Enable CRB repo (needed for some dependencies)
+            dnf config-manager --set-enabled crb 2>/dev/null || true
+            log_success "Prerequisites installed"
+        else
+            log_warn "Some prerequisites are missing — modules may fail"
+        fi
     else
-        log_warn "kernel-devel for $(uname -r) not installed — will be needed for ZFS and px4_drv"
-        log_info "  Install with: dnf install kernel-devel-$(uname -r)"
+        log_success "All prerequisites installed"
     fi
+
+    # Load netfilter modules for Kubernetes (if kernel-modules-extra is available)
+    for mod in nf_conntrack br_netfilter xt_conntrack overlay; do
+        modprobe "$mod" 2>/dev/null || true
+    done
 
     # Check available disk devices (for ZFS)
     log_info "Available block devices:"
