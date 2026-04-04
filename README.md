@@ -1,3 +1,5 @@
+[English](README.md) | [日本語](docs/ja/README.md)
+
 # Project TV - Rocky Edition
 
 Kubernetes-based media server for Rocky Linux 10, featuring EPGStation, Mirakurun, Jellyfin, Tube Archivist, and Navidrome.
@@ -19,7 +21,7 @@ All third-party software retains its original licence. This project's installer 
 
 ## AI Usage
 
-This repository adheres to an AI contribution policy inspired by the [Fedora AI-Assisted Contribution Policy](https://docs.fedoraproject.org/en-US/council/policy/ai-contribution-policy/). AI tools (such as Claude) are used to assist with content creation, formatting, and site development. All AI-generated content is reviewed and verified by a human before publication. If you find any errors, please open an issue.
+This repository follows the [Fedora AI-Assisted Contribution Policy](https://docs.fedoraproject.org/en-US/council/policy/ai-contribution-policy/). Claude's Opus 4.6 model was used to create everything, with human testing for verification and feedback.
 
 ## Overview
 
@@ -55,16 +57,33 @@ Rocky Linux 10 (Host)
 
 ### Hardware requirements
 
-- **CPU**: x86_64 processor (Intel or AMD), 4+ cores recommended
+This project targets the **x86_64** architecture only.
+
+- **CPU**: Any x86_64 processor supported by Rocky Linux 10. Intel processors are recommended for their integrated **Intel Quick Sync Video (QSV)** hardware-accelerated encoding, which significantly improves Jellyfin transcoding performance and live TV streaming.
+  - **Intel (recommended)**: 12th Gen Alder Lake or newer — Core i3, i5, i7, i9, Pentium Gold, or Celeron with Intel UHD Graphics
+  - **AMD**: Ryzen 3000 series or newer — fully supported but uses software encoding only (no Intel QSV)
 - **RAM**: 16 GB minimum (Elasticsearch alone requires 1 GB+)
-- **Storage**: At least two disks — one for the OS (NVMe/SSD recommended), one or more for ZFS media pool
+- **Storage**: 256 GB NVMe minimum for the OS and application data. Additional disks (HDD or SSD) are recommended for a ZFS media pool.
 - **Network**: Gigabit Ethernet
-- **TV tuner** (optional): PLEX PX-W3PE5, PX-Q3PE5, or other px4_drv-supported device
-- **Smart card reader** (optional): SCM SCR331 or compatible (for B-CAS card)
+
+### TV tuner hardware (optional — Japanese broadcasting only)
+
+The live TV recording and streaming functionality is designed for **Japanese digital broadcasting (ISDB-T / ISDB-S)**. If you are not in Japan or do not need TV functionality, you can skip modules 06 (px4_drv) and 07 (EPGStation + Mirakurun) during installation — the installer prompts before each module.
+
+The following hardware is required for TV functionality:
+
+| Component | Model | ID | Purpose |
+|-----------|-------|----|---------|
+| TV Tuner | PLEX PX-W3PE5 | USB `0511:073f` | 4-channel digital TV tuner — 2x terrestrial (ISDB-T) + 2x satellite (ISDB-S BS/CS) |
+| PCIe USB Controller | MosChip MCS9990 | PCIe | 8-port PCIe to USB 2.0 controller — required to connect the PX-W3PE5 |
+| SmartCard Reader | SCM SCR331-LC1 / SCR3310 | USB `04e6:5116` | Reads the B-CAS card for Japanese broadcast decryption |
+| B-CAS Card | — | — | Required to decrypt Japanese terrestrial and satellite broadcasts (often included with the TV tuner or purchased separately) |
+
+Other px4_drv-supported tuners (PX-Q3PE5, PX-Q3U4, PX-MLT5PE, etc.) should also work — adjust the tuner configuration in `manifests/epgstation/mirakurun-configmap.yaml` as needed.
 
 ### Software requirements
 
-- Rocky Linux 10 minimal or KDE install
+- Rocky Linux 10 minimal or KDE install (the installer can also run on any fresh Rocky Linux 10 machine)
 - Internet connection (for downloading packages and container images)
 - A user account with sudo privileges
 
@@ -530,8 +549,6 @@ virt-install \
 | Version | Status | Notes |
 |---------|--------|-------|
 | Rocky Linux 10 | Primary target | Fully tested and supported |
-| Rocky Linux 9 | Tested | See PLATFORM_NOTES.md for differences |
-| Rocky Linux 8 | Tested | See PLATFORM_NOTES.md for differences |
 
 ## Troubleshooting
 
