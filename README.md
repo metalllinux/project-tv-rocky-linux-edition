@@ -22,7 +22,7 @@ All third-party software retains its original licence. This project's installer 
 
 ## AI Usage
 
-This repository follows the [Fedora AI-Assisted Contribution Policy](https://docs.fedoraproject.org/en-US/council/policy/ai-contribution-policy/). Claude's Opus 4.6 model was used to create everything, with human testing for verification and feedback.
+This repository follows the [Fedora AI-Assisted Contribution Policy](https://docs.fedoraproject.org/en-US/council/policy/ai-contribution-policy/). Claude's Opus 4.6 model was used to create everything, with human testing and review for verification and improvements.
 
 ## Overview
 
