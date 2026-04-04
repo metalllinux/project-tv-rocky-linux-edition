@@ -79,30 +79,33 @@ cd project-tv-rocky-edition
 sudo ./install.sh
 ```
 
-The installer presents an interactive menu. You can run a full installation or select individual modules:
+The installer presents an interactive main menu:
 
 ```
 Project TV - Rocky Edition Installer
 =====================================
 
-[1]  Full Installation (run all modules in order)
-[2]  Run a specific module
-[3]  View installation status
-[4]  View log file
-[q]  Quit
-
-Available modules:
-  00  Preflight checks          09  Tube Archivist
-  01  Timezone setup            10  Navidrome
-  02  ZFS storage               11  Jellyfin library refresh
-  03  Kubernetes (kubeadm)      12  Sanoid snapshots
-  04  K8s namespace             13  Rsync media sync
-  05  K8s storage (PV/PVC)      14  KDE customisation
-  06  px4_drv TV tuner driver   15  Browser installation
-  07  EPGStation + Mirakurun    16  SDDM autologin
-  08  Jellyfin                  17  Firewall rules
-                                18  Desktop applications
+  [1]  Full Installation (run all modules in order)
+  [2]  Run a specific module
+  [3]  View installation status
+  [4]  View log file
+  [5]  K8s health summary
+  [q]  Quit
 ```
+
+### Main menu options
+
+**[1] Full Installation** — Runs all modules in the execution order shown below. Before each module, you are asked whether to run it or skip it. If a module has already been completed, you are asked whether to re-run it. If a module fails, you can choose to continue with the next module or stop.
+
+**[2] Run a specific module** — Displays a numbered list of all 21 modules (00–20) sorted numerically. Enter a module number to run it individually. Single digits are accepted (typing `5` is the same as `05`). Modules that have already been completed are marked `(done)`.
+
+**[3] View installation status** — Shows a table of all modules with their current status: `[OK]` completed, `[!!]` failed, `[--]` skipped, or `[  ]` pending.
+
+**[4] View log file** — Displays the last 30 timestamped log entries from the current session and reports the total number of errors.
+
+**[5] K8s health summary** — Shows the current state of the Kubernetes cluster: node status, pod health, and service endpoints. Only available after Kubernetes is installed (module 03).
+
+**[q] Quit** — Exits the installer. The log file path is displayed on exit.
 
 ## Installer logging
 
@@ -114,68 +117,227 @@ All installer output is logged to `logs/install-YYYYMMDD-HHMMSS.log`. If you enc
 
 ## Module details
 
-### ZFS storage (module 02)
+Modules are executed in the following order during a full installation. Module numbers are fixed (matching their filenames) but the execution order groups related tasks together:
 
-The installer interactively creates your ZFS pool and datasets:
-- Shows available disks via `lsblk` and `/dev/disk/by-id/`
-- Prompts for pool name, type (mirror/single/raidz), and disk selection
-- Asks how many datasets you want and prompts for each name and mount point
-- Creates the pool with `ashift=12` for 4K sector alignment
-- Saves configuration to `config/datasets.conf` for use by later modules
+**System setup:** 00 → 01 → 02 → 03 → 04 → 05 → 06
 
-### Kubernetes (module 03)
+**Desktop and system configuration:** 17 → 16 → 15 → 18 → 14 → 12
 
-Installs full upstream Kubernetes via kubeadm:
-- containerd as the container runtime
-- Flannel CNI for pod networking
-- Single-node configuration (control-plane taint removed)
+**Kubernetes application deployments:** 07 → 08 → 09 → 10 → 11
 
-### Application deployments (modules 07-10)
+**Extras and monitoring:** 13 → 19 → 20
 
-Each application is deployed as Kubernetes Deployments with Services, ConfigMaps, and Secrets. Media is accessed via PersistentVolumes backed by ZFS dataset host paths.
+---
 
-### TV channel scanning (module 07)
+### Module 00 — Preflight checks
 
-After Mirakurun is deployed, the installer offers to scan for TV channels. Three scan types are available:
+Verifies the system meets all requirements before installation begins:
+- Confirms Rocky Linux 10 (also supports 9 and 8 with warnings)
+- Checks CPU architecture (x86_64 required), RAM (16 GB recommended), and CPU cores (4+ recommended)
+- Tests internet connectivity to `dl.rockylinux.org`
+- Detects PX TV tuner hardware and SmartCard reader via USB
+- Lists available block devices for ZFS pool creation
+- **Installs missing prerequisites** — if packages like `kernel-devel`, `kernel-modules-extra`, `git`, `gcc`, `podman`, or `epel-release` are missing, offers to install them automatically
 
-1. **Terrestrial (GR)** — local broadcast channels (NHK, commercial stations, regional channels)
-2. **BS satellite** — free-to-air satellite channels
-3. **CS satellite** — premium satellite channels
+This module allows the installer to work on **any Rocky Linux 10 machine**, not just one installed from the custom ISO.
 
-Each scan takes a few minutes and reports how many channels were found. Scanned channels are saved to `/var/lib/project-tv/mirakurun/config/channels.yml` and persist across pod restarts.
+### Module 01 — Timezone setup
 
-You can re-scan at any time from the Mirakurun web UI or via the API:
+- Displays the current timezone
+- Prompts to confirm or change it (default: `Asia/Tokyo`)
+- Validates the timezone exists in `/usr/share/zoneinfo/`
+- Enables NTP synchronisation
 
+### Module 02 — ZFS storage
+
+Creates a ZFS pool and datasets for media storage. If ZFS is already installed and a pool exists, the module detects it and skips to completion.
+
+**On a fresh system:**
+1. Installs ZFS via DKMS from the OpenZFS repository
+2. Shows available block devices and disk IDs in a numbered list
+3. Prompts for pool name (default: `mediapool`), pool type (mirror/single/raidz1/raidz2), and disk selection by number
+4. Detects existing filesystems on the selected disks and offers to force-create if needed
+5. Prompts for the number of datasets and their names and mount points
+6. Creates the pool with `ashift=12` for 4K sector alignment
+7. Saves configuration to `config/datasets.conf`
+
+### Module 03 — Kubernetes (kubeadm)
+
+Installs a full upstream Kubernetes cluster. If the cluster is already running and the node is Ready, the module shows the current state and exits.
+
+**On a fresh system:**
+1. Configures SELinux (prompts for permissive or enforcing)
+2. Loads all required kernel modules: `overlay`, `br_netfilter`, `nf_conntrack`, `xt_conntrack`, `xt_comment`, `xt_mark`, `ip_tables`, `ip6_tables`, `nf_nat`
+3. Sets kernel sysctl parameters for Kubernetes networking
+4. Installs containerd from the Docker CE repository
+5. Installs kubeadm, kubelet, and kubectl from the Kubernetes repository
+6. Disables swap (required by kubeadm)
+7. Runs `kubeadm init` with Flannel pod network CIDR
+8. Installs Flannel CNI and waits for all system pods (Flannel, kube-proxy, CoreDNS) to be running
+9. Removes the control-plane taint for single-node operation
+
+### Module 04 — K8s namespace
+
+Creates the `project-tv` namespace used by all application deployments.
+
+### Module 05 — K8s storage (PV/PVC)
+
+Configures storage paths for all applications and generates Kubernetes PersistentVolume/PersistentVolumeClaim manifests.
+
+**For each application, you choose where to store its data:**
+- If ZFS datasets exist, they are shown as a numbered list — enter a number to select one
+- You can also type any custom path on the NVMe or another filesystem
+- If no ZFS pool exists, you are prompted to create directories on the NVMe
+
+**Applications configured:**
+| Application | What is stored | Default path |
+|-------------|---------------|--------------|
+| EPGStation | TV recordings | `/home/<user>/tv` |
+| Jellyfin | Media libraries (supports multiple paths) | `/home/<user>/media` |
+| Navidrome | Music collection | `/home/<user>/music` |
+| Tube Archivist | YouTube downloads | `/home/<user>/youtube` |
+| MakeMKV | DVD/Blu-ray rips | `/home/<user>/rips` |
+| Prometheus | Metrics database | `/var/lib/project-tv/prometheus/data` |
+| Grafana | Dashboard data | `/var/lib/project-tv/grafana/data` |
+
+Storage paths are saved to `config/storage-paths.conf` and read by all subsequent modules.
+
+### Module 06 — px4_drv TV tuner driver
+
+Installs the px4_drv DKMS kernel module for PLEX TV tuner devices (PX-W3PE5, PX-Q3PE5, etc.):
+1. Installs build prerequisites and SmartCard reader support (pcsc-lite)
+2. Clones the px4_drv source from GitHub
+3. Patches `driver_module.c` for Rocky Linux 10 kernel 6.12 compatibility
+4. Builds and installs via DKMS (handles existing DKMS entries on re-run)
+5. Installs firmware and udev rules
+6. Loads the module and verifies device nodes (`/dev/px4video0-3`)
+
+### Module 17 — Firewall rules
+
+Configures firewalld with ports for all services. If firewalld is not running, offers to enable it first.
+
+**Ports opened:** Jellyfin (30096), EPGStation (30888/30889), Mirakurun (30772), Tube Archivist (30800), Navidrome (30453), Kubernetes API (6443), kubelet (10250).
+
+### Module 16 — SDDM autologin
+
+Configures SDDM (KDE display manager) to automatically log in the installer user on boot.
+
+### Module 15 — Browser installation
+
+Installs web browsers via Flatpak. Presents a multi-select menu of:
+- Google Chrome, Brave, Waterfox, Firefox, Vivaldi, Chromium, Microsoft Edge
+
+After installation, if only one browser was installed it is automatically set as the default. If multiple were installed, you pick from a numbered list.
+
+### Module 18 — Desktop applications
+
+Optional applications installed individually (each prompted with Y/n):
+- **SeaDrive** — Seafile virtual drive client (installed as AppImage to `~/Applications/`)
+- **MakeMKV** — DVD/Blu-ray ripper (via Flatpak)
+- **Jellyfin Media Player** — Desktop media client (via Flatpak)
+
+### Module 14 — KDE customisation
+
+Configures the KDE Plasma desktop:
+- Disables screen edges (no hot corners)
+- Disables sleep, suspend, and screen dimming
+- Offers to install **ibus-anthy** for Japanese input
+
+### Module 12 — Sanoid snapshots
+
+Installs Sanoid (ZFS snapshot manager) from GitHub and configures automated snapshots:
+- Prompts for retention: daily (default: 60), hourly (default: 24), weekly (default: 4), monthly (default: 12), yearly (default: 0)
+- If hourly snapshots are enabled, prompts for run frequency: every hour (default), 30 minutes, 15 minutes, or custom
+- Creates systemd timer and service units
+
+### Module 07 — EPGStation + Mirakurun
+
+Deploys the Japanese TV recording stack on Kubernetes:
+1. **Builds custom container images** (if not already present):
+   - Mirakurun with recpt1 (for px4_drv TV tuner support)
+   - EPGStation with ffmpeg (for live TV streaming in the browser)
+2. Prompts for MariaDB root and EPGStation database passwords
+3. Deploys MariaDB, Mirakurun, and EPGStation with their ConfigMaps, Secrets, and Services
+4. **Scans for TV channels** — offers terrestrial (GR), BS satellite, and CS satellite scans
+5. Restarts Mirakurun to load scanned channels into services
+6. Restarts EPGStation to pick up the channel data
+
+**After deployment:**
+- Mirakurun web UI: `http://<host-ip>:30772`
+- EPGStation web UI: `http://<host-ip>:30888`
+- Live TV: Select a channel in EPGStation and choose HLS 720p or 480p format
+
+**Live streaming formats available:**
+| Format | Description |
+|--------|-------------|
+| M2TS | Raw MPEG-TS passthrough (requires external player) |
+| M2TS-LL | Low-latency raw MPEG-TS |
+| HLS 720p / 480p | Browser-native streaming (recommended) |
+| H.264 MP4 720p / 480p | Fragmented MP4 for browsers |
+| WebM 720p / 480p | VP9 video for browsers |
+
+**Re-scanning channels** at any time:
 ```bash
-# Terrestrial
 curl -X PUT "http://<host-ip>:30772/api/config/channels/scan?type=GR&setDisabledOnAdd=false"
-
-# BS satellite
 curl -X PUT "http://<host-ip>:30772/api/config/channels/scan?type=BS&setDisabledOnAdd=false"
-
-# CS satellite
 curl -X PUT "http://<host-ip>:30772/api/config/channels/scan?type=CS&setDisabledOnAdd=false"
 ```
 
-### Jellyfin library refresh (module 11)
+### Module 08 — Jellyfin
 
-Replaces the VM-based xdotool hack from v2 with a Kubernetes CronJob that calls the Jellyfin REST API:
-```
-POST /Library/Refresh
-```
-Runs hourly. Requires a Jellyfin API key (generated after first boot).
+Deploys Jellyfin media server on Kubernetes:
+- Dynamically generates volume mounts from the media paths configured in module 05
+- Each media directory is mounted read-only at `/data/<directory-name>` inside the container
+- Detects existing deployments and skips on re-run
 
-### Browser installation (module 15)
+**After deployment:** `http://<host-ip>:30096`
 
-Offers a choice of browsers to install via Flatpak:
-- Google Chrome, Brave, Waterfox, Firefox, Vivaldi, Chromium, Microsoft Edge
+### Module 09 — Tube Archivist
 
-### Desktop applications (module 18)
+Deploys Tube Archivist (YouTube archive manager) with Redis and Elasticsearch:
+- Prompts for Tube Archivist username/password and Elasticsearch password
+- Uses the download path configured in module 05
+- Detects existing deployments and skips on re-run
 
-Optional applications including:
-- MakeMKV — DVD/Blu-ray ripper (via Flatpak)
-- Jellyfin Media Player — desktop media client (via Flatpak)
-- SeaDrive — Seafile virtual drive for KDE Dolphin
+**After deployment:** `http://<host-ip>:30800`
+
+### Module 10 — Navidrome
+
+Deploys Navidrome music server on Kubernetes:
+- Uses the music path configured in module 05
+- Detects existing deployments and skips on re-run
+
+**After deployment:** `http://<host-ip>:30453`
+
+### Module 11 — Jellyfin library refresh
+
+Creates a Kubernetes CronJob that periodically calls the Jellyfin REST API to refresh media libraries:
+1. Displays the Jellyfin URL and guides you through initial setup (create user, add media libraries)
+2. Walks you through generating an API key: Settings > Administration > Dashboard > API Keys > New API Key
+3. Validates the cron schedule format (displays a visual diagram of the five fields)
+4. Deploys the CronJob (default: runs every hour)
+
+### Module 13 — Rsync media sync
+
+Configures rsync-based backup of ZFS datasets to a remote server. Prompts for backup server, SSH user, and remote path.
+
+### Module 19 — Prometheus monitoring
+
+Deploys Prometheus on Kubernetes for metrics collection:
+- Sets up RBAC (ServiceAccount, ClusterRole, ClusterRoleBinding)
+- Uses the data path configured in module 05
+- Sets correct ownership (UID 65534 / nobody) on the data directory
+
+**After deployment:** `http://<host-ip>:30090`
+
+### Module 20 — Grafana dashboards
+
+Deploys Grafana on Kubernetes with Prometheus pre-configured as a data source:
+- Prompts for the Grafana admin password
+- Uses the data path configured in module 05
+- Sets correct ownership (UID 472 / grafana) on the data directory
+
+**After deployment:** `http://<host-ip>:30300`
 
 ## Building the custom Rocky Linux 10 ISO
 

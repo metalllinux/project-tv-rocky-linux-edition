@@ -250,12 +250,14 @@ main() {
                 if [[ -f "$LOG_FILE" ]]; then
                     echo ""
                     echo "Log file: $LOG_FILE"
-                    echo "Last 30 lines:"
+                    echo "Last 30 log entries:"
                     echo "---"
-                    tail -30 "$LOG_FILE"
+                    grep '^\[' "$LOG_FILE" | tail -30
                     echo "---"
                     echo ""
-                    echo "Errors found: $(count_errors)"
+                    local err_count
+                    err_count=$(grep -c '\[ERROR\]' "$LOG_FILE" 2>/dev/null || echo "0")
+                    echo "Errors found: $err_count"
                 else
                     echo "No log file found."
                 fi

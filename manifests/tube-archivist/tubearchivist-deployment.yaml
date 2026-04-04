@@ -47,8 +47,8 @@ spec:
         env:
         - name: ES_URL
           value: "http://archivist-es:9200"
-        - name: REDIS_HOST
-          value: "archivist-redis"
+        - name: REDIS_CON
+          value: "redis://archivist-redis:6379"
         - name: HOST_UID
           value: "1000"
         - name: HOST_GID
