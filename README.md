@@ -8,8 +8,9 @@ This project is the successor to [Project TV v2 (Ubuntu)](https://metalinux.dev/
 
 ## Attribution
 
-This project includes and depends on the following open source software:
+This project includes manifests from the following open source software - please show them your support:
 
+- **[Rocky Linux](https://rockylinux.org/)** — The foundation that makes this project possible. A community enterprise operating system designed to be 100% bug-for-bug compatible with Red Hat Enterprise Linux.
 - **[px4_drv](https://github.com/tsukumijima/px4_drv)** by [tsukumijima](https://github.com/tsukumijima) (originally by [nns779](https://github.com/nns779/px4_drv)) — Linux driver for PLEX and e-Better TV tuner devices. Licensed under **GPL-2.0**. See the [px4_drv LICENSE](https://github.com/tsukumijima/px4_drv/blob/develop/LICENSE) for full text.
 - **[EPGStation](https://github.com/l3tnun/EPGStation)** by [l3tnun](https://github.com/l3tnun) — Digital broadcast recording system
 - **[Mirakurun](https://github.com/Chinachu/Mirakurun)** by [Chinachu](https://github.com/Chinachu) — Digital broadcast tuner server
