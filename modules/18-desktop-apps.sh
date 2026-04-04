@@ -23,37 +23,18 @@ run() {
 }
 
 install_seadrive() {
-    log_info "Installing SeaDrive desktop client via AppImage..."
-
-    local target_user="${SUDO_USER:-$(whoami)}"
-    local target_home
-    target_home=$(eval echo "~$target_user")
-    local appimage_dir="$target_home/Applications"
-    local appimage_url="https://linux-clients.seafile.com/seadrive-sharedlib/seadrive-gui_2.0.28_x86-64.AppImage"
-    local appimage_file="$appimage_dir/SeaDrive.AppImage"
-
-    mkdir -p "$appimage_dir"
-
-    log_info "Downloading SeaDrive AppImage..."
-    if curl -fSL --connect-timeout 15 -o "$appimage_file" "$appimage_url" 2>&1; then
-        chmod +x "$appimage_file"
-        chown "$target_user:$target_user" "$appimage_dir" "$appimage_file"
-
-        # Create desktop entry
-        cat > "$target_home/.local/share/applications/seadrive.desktop" << EOF
-[Desktop Entry]
-Type=Application
-Name=SeaDrive
-Comment=Seafile virtual drive client
-Exec=$appimage_file
-Icon=seafile
-Categories=Network;FileTransfer;
-EOF
-        chown "$target_user:$target_user" "$target_home/.local/share/applications/seadrive.desktop"
-        log_success "SeaDrive installed at $appimage_file"
-    else
-        log_warn "SeaDrive download failed. Download manually from: https://www.seafile.com/en/download/"
-    fi
+    echo ""
+    echo "SeaDrive (Seafile virtual drive client)"
+    echo ""
+    echo "Download the SeaDrive AppImage from:"
+    echo "  https://www.seafile.com/en/download/"
+    echo ""
+    echo "After downloading, place the AppImage in ~/Applications/ and make it executable:"
+    echo "  mkdir -p ~/Applications"
+    echo "  mv ~/Downloads/seadrive-gui_*.AppImage ~/Applications/SeaDrive.AppImage"
+    echo "  chmod +x ~/Applications/SeaDrive.AppImage"
+    echo ""
+    log_success "SeaDrive download instructions displayed"
 }
 
 install_flatpak_app() {
