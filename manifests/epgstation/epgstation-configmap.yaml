@@ -110,7 +110,15 @@ data:
                 -hls_flags delete_segments %OUTPUT%
 
     encode:
-      - name: H.264
+      - name: H.264 (QSV)
+        cmd: >-
+          %FFMPEG% -dual_mono_mode main -init_hw_device qsv=qsv:hw -hwaccel qsv -hwaccel_output_format qsv
+          -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a aac -ar 48000 -b:a 192k -ac 2
+          -c:v h264_qsv -vf yadif,scale=-2:720 -b:v 3000k -preset faster
+          -y -f mp4 pipe:1
+        suffix: .mp4
+        rate: 4.0
+      - name: H.264 (Software)
         cmd: >-
           %FFMPEG% -dual_mono_mode main -i pipe:0 -map 0:v -map 0:a -ignore_unknown -c:a aac -ar 48000 -b:a 192k
           -ac 2 -c:v libx264 -vf yadif,scale=-2:720 -b:v 3000k -preset veryfast

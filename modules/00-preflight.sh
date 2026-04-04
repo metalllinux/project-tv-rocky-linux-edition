@@ -114,6 +114,18 @@ run() {
         modprobe "$mod" 2>/dev/null || true
     done
 
+    # Check for Intel Quick Sync Video (QSV)
+    log_info "Checking for Intel Quick Sync Video..."
+    if [[ -e /dev/dri/renderD128 ]]; then
+        local gpu_info
+        gpu_info=$(lspci 2>/dev/null | grep -i "VGA\|Display" | head -1)
+        log_success "Intel GPU detected: $gpu_info"
+        log_success "Quick Sync Video available at /dev/dri/renderD128"
+        log_info "  Jellyfin and EPGStation will use hardware-accelerated encoding"
+    else
+        log_info "No Intel GPU detected — software encoding will be used"
+    fi
+
     # Check available disk devices (for ZFS)
     log_info "Available block devices:"
     lsblk -d -n -o NAME,SIZE,TYPE,MOUNTPOINT 2>&1 | while read -r line; do

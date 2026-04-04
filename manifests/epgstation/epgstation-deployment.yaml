@@ -73,6 +73,10 @@ spec:
           mountPath: /app/logs
         - name: recorded
           mountPath: /app/recorded
+        - name: dri
+          mountPath: /dev/dri
+        securityContext:
+          privileged: true
         resources:
           requests:
             memory: "256Mi"
@@ -101,3 +105,7 @@ spec:
           # PLACEHOLDER: replaced by installer with user's ZFS tv dataset path
           path: /mnt/mediapool/tv
           type: DirectoryOrCreate
+      - name: dri
+        hostPath:
+          path: /dev/dri
+          type: Directory

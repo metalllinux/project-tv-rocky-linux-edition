@@ -56,6 +56,25 @@ generate_jellyfin_deployment() {
         done < "$DATASETS_CONF"
     fi
 
+    # Detect Intel Quick Sync Video (QSV)
+    local qsv_mounts=""
+    local qsv_volumes=""
+    local qsv_security=""
+    if [[ -e /dev/dri/renderD128 ]]; then
+        log_info "Intel Quick Sync Video detected — enabling hardware acceleration"
+        qsv_mounts="
+        - name: dri
+          mountPath: /dev/dri"
+        qsv_volumes="
+      - name: dri
+        hostPath:
+          path: /dev/dri
+          type: Directory"
+        qsv_security="
+        securityContext:
+          privileged: true"
+    fi
+
     cat > "$deploy_file" << EOF
 apiVersion: apps/v1
 kind: Deployment
@@ -86,12 +105,12 @@ spec:
         - name: PGID
           value: "${PGID}"
         - name: TZ
-          value: "${TIMEZONE}"
+          value: "${TIMEZONE}"${qsv_security}
         volumeMounts:
         - name: config
           mountPath: /config
         - name: cache
-          mountPath: /cache${volume_mounts}
+          mountPath: /cache${volume_mounts}${qsv_mounts}
         resources:
           requests:
             memory: "512Mi"
@@ -119,7 +138,7 @@ spec:
       - name: cache
         hostPath:
           path: /var/lib/project-tv/jellyfin/cache
-          type: DirectoryOrCreate${volumes}
+          type: DirectoryOrCreate${volumes}${qsv_volumes}
 EOF
 
     echo "$deploy_file"
