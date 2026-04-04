@@ -63,7 +63,7 @@ This project targets the **x86_64** architecture only.
 - **CPU**: Any x86_64 processor supported by Rocky Linux 10. Intel processors are recommended for their integrated **Intel Quick Sync Video (QSV)** hardware-accelerated encoding, which significantly improves Jellyfin transcoding performance and live TV streaming.
   - **Intel (recommended)**: 12th Gen Alder Lake or newer — Core i3, i5, i7, i9, Pentium Gold, or Celeron with Intel UHD Graphics
   - **AMD**: Ryzen 3000 series or newer — fully supported but uses software encoding only (no Intel QSV)
-- **RAM**: 16 GB minimum (Elasticsearch alone requires 1 GB+). 8 GB swap is recommended.
+- **RAM**: 16 GB minimum. Running all services simultaneously — particularly EPGStation, Jellyfin, and Elasticsearch — consumes significant memory. 8 GB swap is recommended.
 - **Storage**: 256 GB NVMe minimum for the OS and application data. Additional disks (HDD or SSD) are recommended for a ZFS media pool.
 - **Network**: Gigabit Ethernet
 

@@ -110,8 +110,8 @@ run() {
     fi
 
     # Load netfilter modules for Kubernetes (if kernel-modules-extra is available)
-    for mod in nf_conntrack br_netfilter xt_conntrack overlay; do
-        modprobe "$mod" 2>/dev/null || true
+    for kmod in nf_conntrack br_netfilter xt_conntrack overlay; do
+        modprobe "$kmod" 2>/dev/null || true
     done
 
     # Check for Intel Quick Sync Video (QSV)
