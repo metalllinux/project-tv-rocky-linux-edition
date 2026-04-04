@@ -52,7 +52,7 @@ Rocky Linux 10 (Host)
 - **Jellyfin API CronJob** replaces the virt-manager VM hack for library refreshes
 - **Dynamic ZFS datasets** — the installer prompts for dataset names and mount points
 - **px4_drv RPM** — proper DKMS RPM package instead of manual driver compilation
-- **Rocky Linux 10** as the base OS, with testing on Rocky 9 and 8
+- **Rocky Linux 10** as the base OS
 
 ## Prerequisites
 
@@ -152,7 +152,7 @@ Modules are executed in the following order during a full installation. Module n
 ### Module 00 — Preflight checks
 
 Verifies the system meets all requirements before installation begins:
-- Confirms Rocky Linux 10 (also supports 9 and 8 with warnings)
+- Confirms Rocky Linux 10
 - Checks CPU architecture (x86_64 required), RAM (16 GB recommended), and CPU cores (4+ recommended)
 - Tests internet connectivity to `dl.rockylinux.org`
 - Detects PX TV tuner hardware and SmartCard reader via USB
