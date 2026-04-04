@@ -363,6 +363,8 @@ Deploys Grafana on Kubernetes with Prometheus pre-configured as a data source:
 
 A pre-built custom ISO can be created that auto-installs Rocky Linux 10 with all prerequisites, then installs KDE Plasma on first boot. The result is a USB-bootable ISO — insert it, select install, and boot into KDE with the Project TV installer ready.
 
+The custom ISO includes ZFS (both userspace tools and kernel modules via DKMS) pre-installed during the first-boot setup, so module 02 can skip the ZFS installation step and go straight to pool and dataset creation.
+
 ### Prerequisites
 
 ```bash
