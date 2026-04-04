@@ -29,6 +29,8 @@ run() {
 
     # Apply
     log_cmd "Deploy Grafana datasource" kubectl apply -f "$PROJECT_ROOT/manifests/grafana/datasource.yaml"
+    log_cmd "Deploy Grafana dashboard provider" kubectl apply -f "$PROJECT_ROOT/manifests/grafana/dashboard-provider.yaml"
+    log_cmd "Deploy Grafana Node Overview dashboard" kubectl apply -f "$PROJECT_ROOT/manifests/grafana/dashboard-node.yaml"
     log_cmd "Deploy Grafana" kubectl apply -f "$PROJECT_ROOT/manifests/grafana/deployment.yaml"
     log_cmd "Deploy Grafana Service" kubectl apply -f "$PROJECT_ROOT/manifests/grafana/service.yaml"
 

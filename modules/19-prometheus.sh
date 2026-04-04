@@ -21,9 +21,10 @@ run() {
     sed -i "s|path: /var/lib/project-tv/prometheus/data|path: ${prom_data}|" \
         "$PROJECT_ROOT/manifests/prometheus/deployment.yaml"
 
-    # Apply RBAC first, then config, then deployment
+    # Apply RBAC first, then config, then node-exporter, then deployment
     log_cmd "Deploy Prometheus RBAC" kubectl apply -f "$PROJECT_ROOT/manifests/prometheus/rbac.yaml"
     log_cmd "Deploy Prometheus ConfigMap" kubectl apply -f "$PROJECT_ROOT/manifests/prometheus/configmap.yaml"
+    log_cmd "Deploy Node Exporter" kubectl apply -f "$PROJECT_ROOT/manifests/prometheus/node-exporter.yaml"
     log_cmd "Deploy Prometheus" kubectl apply -f "$PROJECT_ROOT/manifests/prometheus/deployment.yaml"
     log_cmd "Deploy Prometheus Service" kubectl apply -f "$PROJECT_ROOT/manifests/prometheus/service.yaml"
 
