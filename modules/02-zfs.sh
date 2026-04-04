@@ -290,7 +290,40 @@ run() {
         zfs list 2>&1
         echo ""
         ZFS_POOL_NAME=$(echo "$existing_pools" | head -1)
-        log_success "Using existing pool: $ZFS_POOL_NAME"
+
+        echo ""
+        echo "What would you like to do?"
+        echo ""
+        echo "  [1] Keep existing pool and datasets (no changes)"
+        echo "  [2] Add new datasets to the existing pool"
+        echo "  [3] Destroy pool and start fresh (WARNING: deletes all data)"
+        echo ""
+        local pool_choice
+        read -rp "Select an option (1-3) [1]: " pool_choice
+        pool_choice="${pool_choice:-1}"
+
+        case "$pool_choice" in
+            2)
+                log_info "Adding datasets to pool: $ZFS_POOL_NAME"
+                create_datasets
+                ;;
+            3)
+                echo ""
+                log_warn "This will DESTROY pool '$ZFS_POOL_NAME' and ALL data on it."
+                if ask_yes_no "Are you sure you want to destroy the pool?" "default_no"; then
+                    log_cmd "Destroy ZFS pool" zpool destroy "$ZFS_POOL_NAME"
+                    create_pool || return 1
+                    create_datasets
+                else
+                    log_info "Pool destruction cancelled"
+                    return 0
+                fi
+                ;;
+            *)
+                log_success "Using existing pool: $ZFS_POOL_NAME"
+                return 0
+                ;;
+        esac
         return 0
     fi
 
