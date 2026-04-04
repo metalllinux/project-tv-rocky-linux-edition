@@ -1,5 +1,5 @@
 #!/bin/bash
-# install.sh — Project TV - Rocky Edition Installer
+# install.sh — Project TV - Rocky Linux Edition Installer
 # Interactive installer for deploying a Kubernetes-based media server on Rocky Linux.
 #
 # Usage: sudo ./install.sh
@@ -136,7 +136,7 @@ show_status() {
 # Display the main menu
 show_main_menu() {
     echo ""
-    echo "Project TV - Rocky Edition Installer"
+    echo "Project TV - Rocky Linux Edition Installer"
     echo "====================================="
     echo ""
     echo "  [1]  Full Installation (run all modules in order)"

@@ -1,6 +1,6 @@
 [English](README.md) | [日本語](docs/ja/README.md)
 
-# Project TV - Rocky Edition
+# Project TV - Rocky Linux Edition
 
 Kubernetes-based media server for Rocky Linux 10, featuring EPGStation, Mirakurun, Jellyfin, Tube Archivist, and Navidrome.
 
@@ -25,7 +25,7 @@ This repository follows the [Fedora AI-Assisted Contribution Policy](https://doc
 
 ## Overview
 
-Project TV - Rocky Edition transforms a Rocky Linux 10 system into a fully featured media server running on Kubernetes. The interactive installer walks you through every step, from ZFS storage setup to application deployment.
+Project TV - Rocky Linux Edition transforms a Rocky Linux 10 system into a fully featured media server running on Kubernetes. The interactive installer walks you through every step, from ZFS storage setup to application deployment.
 
 ### Architecture
 
@@ -101,7 +101,7 @@ sudo ./install.sh
 The installer presents an interactive main menu:
 
 ```
-Project TV - Rocky Edition Installer
+Project TV - Rocky Linux Edition Installer
 =====================================
 
   [1]  Full Installation (run all modules in order)

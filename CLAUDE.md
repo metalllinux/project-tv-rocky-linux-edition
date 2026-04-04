@@ -1,4 +1,4 @@
-# Project TV - Rocky Edition
+# Project TV - Rocky Linux Edition
 
 ## Project overview
 
