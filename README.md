@@ -526,8 +526,8 @@ Replace `/dev/sdX` with your actual USB device (check with `lsblk`).
 
    Once all warnings are cleared, click **"Begin Installation"**.
 4. The kickstart installs the base system from the DVD (~5 minutes)
-5. The system reboots, then the first-boot service installs KDE Plasma + dkms + flatpak from EPEL (~5-10 minutes depending on internet speed)
-6. The system reboots again into SDDM — log in and run `sudo ./project_tv_rocky_linux/install.sh`
+5. The system reboots into a command-line login screen. **Do not log in yet** — the first-boot service is running in the background, installing KDE Plasma, ZFS, kernel modules, and other required packages. This takes **5 to 10 minutes** depending on internet speed. You can monitor progress by logging in via SSH: `ssh <user>@<ip>` and running `sudo tail -f /root/project-tv-firstboot.log`
+6. Once complete, the system **reboots automatically** into the SDDM graphical login screen. Log in and run `sudo ./project_tv_rocky_linux/install.sh`
 
 ### Testing the ISO in a VM
 
