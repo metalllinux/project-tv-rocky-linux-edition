@@ -83,7 +83,7 @@ Other px4_drv-supported tuners (PX-Q3PE5, PX-Q3U4, PX-MLT5PE, etc.) should also 
 
 ### Software requirements
 
-- Rocky Linux 10 minimal or KDE install (the installer can also run on any fresh Rocky Linux 10 machine)
+- Rocky Linux 10 minimal ISO
 - Internet connection (for downloading packages and container images)
 - A user account with sudo privileges
 
@@ -358,7 +358,7 @@ Deploys Grafana on Kubernetes with Prometheus pre-configured as a data source:
 
 **After deployment:** `http://<host-ip>:30300`
 
-## Building the custom Rocky Linux 10 ISO
+## Building the custom Rocky Linux 10 ISO (optional)
 
 A pre-built custom ISO can be created that auto-installs Rocky Linux 10 with all prerequisites, then installs KDE Plasma on first boot. The result is a USB-bootable ISO — insert it, select install, and boot into KDE with the Project TV installer ready.
 
