@@ -2,7 +2,7 @@
 
 # Project TV - Rocky Linux Edition
 
-Kubernetes-based media server for Rocky Linux 10, featuring EPGStation, Mirakurun, Jellyfin, Tube Archivist, and Navidrome.
+A Kubernetes-based media server for Rocky Linux 10, featuring EPGStation, Mirakurun, Jellyfin, Tube Archivist, MakeMKV and Navidrome.
 
 This project is the successor to [Project TV v2 (Ubuntu)](https://metalinux.dev/linux-journey/courses/project-tv-v2/), rewritten from the ground up for Rocky Linux with Kubernetes (kubeadm) replacing Docker Compose.
 
