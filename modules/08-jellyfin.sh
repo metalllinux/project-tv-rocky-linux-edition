@@ -61,7 +61,7 @@ generate_jellyfin_deployment() {
     local qsv_volumes=""
     local qsv_security=""
     if [[ -e /dev/dri/renderD128 ]]; then
-        log_info "Intel Quick Sync Video detected — enabling hardware acceleration"
+        echo "[INFO] Intel Quick Sync Video detected — enabling hardware acceleration" >&2
         qsv_mounts="
         - name: dri
           mountPath: /dev/dri"
