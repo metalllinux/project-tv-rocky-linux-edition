@@ -2,7 +2,7 @@
 
 # Project TV - Rocky Linux Edition
 
-A Kubernetes-based media server for Rocky Linux 10, featuring EPGStation, Mirakurun, Jellyfin, Tube Archivist, MakeMKV, Seafile Drive Client and Navidrome.
+A Kubernetes-based media server for Rocky Linux 10, featuring EPGStation, Mirakurun, Jellyfin, Tube Archivist, Sanoid, MakeMKV, Seafile Drive Client and Navidrome, and a plethora of browsers are available too.
 
 This project is the successor to [Project TV v2 (Ubuntu)](https://metalinux.dev/linux-journey/courses/project-tv-v2/), rewritten from the ground up for Rocky Linux with Kubernetes (kubeadm) replacing Docker Compose.
 
@@ -22,7 +22,7 @@ A huge thank you goes to every single one of these software projects, without th
 - **[Kubernetes](https://github.com/kubernetes/kubernetes)** — Container orchestration platform for automating deployment and scaling. Licensed under **Apache-2.0**.
 - **[Prometheus](https://github.com/prometheus/prometheus)** — Monitoring and alerting system with time-series database. Licensed under **Apache-2.0**.
 - **[Grafana](https://github.com/grafana/grafana)** — Open-source visualisation and monitoring platform. Licensed under **AGPL-3.0**.
-- **[Sanoid / Syncoid](https://github.com/jimsalterjrs/sanoid)** — ZFS snapshot management and replication tools. Licensed under **GPL-3.0**.
+- **[Sanoid](https://github.com/jimsalterjrs/sanoid)** — ZFS snapshot management tools. Licensed under **GPL-3.0**.
 - **[KDE Plasma](https://github.com/KDE/plasma-desktop)** — Feature-rich desktop environment. Licensed under **GPL-2.0**.
 - **[Brave](https://brave.com/)** — Privacy-focused web browser. Licensed under **MPL-2.0**.
 - **[Waterfox](https://www.waterfox.net/)** — Privacy-focused Firefox fork. Licensed under **MPL-2.0**.
@@ -625,7 +625,7 @@ All third-party software retains its original licence. The following licences ap
 | Kubernetes | Apache-2.0 |
 | Prometheus | Apache-2.0 |
 | Grafana | AGPL-3.0 |
-| Sanoid / Syncoid | GPL-3.0 |
+| Sanoid | GPL-3.0 |
 | KDE Plasma | GPL-2.0 |
 | Brave | MPL-2.0 |
 | Waterfox | MPL-2.0 |
