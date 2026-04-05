@@ -395,7 +395,7 @@ Prometheusをデフォルトデータソースとして設定済みのGrafanaを
 
 ## カスタムRocky Linux 10 ISOのビルド
 
-すべての前提条件を含むRocky Linux 10を自動インストールし、初回起動時にKDE PlasmaをインストールするカスタムISOを作成できます。USBブート可能なISOとして、挿入してインストールを選択し、Project TVインストーラーの準備が整ったKDEで起動します。
+すべての前提条件を含むRocky Linux 10を自動インストールし、初回起動時にKDE Plasmaと必須KDEアプリケーション（konsole、dolphin、kate、spectacle、ark、okular、gwenview、kcalc）をインストールするカスタムISOを作成できます。USBブート可能なISOとして、挿入してインストールを選択し、Project TVインストーラーの準備が整ったKDEで起動します。
 
 詳細な手順は[英語版README](../../README.md#building-the-custom-rocky-linux-10-iso)を参照してください。
 

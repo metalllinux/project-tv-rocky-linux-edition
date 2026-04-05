@@ -403,7 +403,7 @@ The custom ISO includes ZFS (both userspace tools and kernel modules via DKMS) p
 
 ```bash
 # Tools needed on the build host
-sudo dnf install -y xorriso pykickstart
+sudo dnf install -y xorriso pykickstart syslinux-nonlinux
 ```
 
 ### Step 1: Extract the Rocky Linux 10 DVD ISO
@@ -495,29 +495,21 @@ The volume label **must** be `Rocky-10-1-x86_64-dvd` (the GRUB `search` command 
 cd ~/isos/custom-rocky10
 
 xorriso -as mkisofs \
-  -V 'Rocky-10-1-x86_64-dvd' \
   -o ~/isos/Rocky-10.1-x86_64-custom.iso \
-  -b images/eltorito.img \
-  -no-emul-boot \
-  -boot-load-size 4 \
-  -boot-info-table \
+  -R -J -V "Rocky-10-1-x86_64-dvd" \
+  -b boot/grub2/i386-pc/cdboot.img \
+  -c boot.catalog \
+  -no-emul-boot -boot-load-size 4 -boot-info-table \
   --grub2-boot-info \
   -eltorito-alt-boot \
   -e images/efiboot.img \
   -no-emul-boot \
-  --grub2-mbr --interval:local_fs:0s-15s:zero_mbrpt,zero_gpt:~/isos/Rocky-10.1-x86_64-dvd1.iso \
-  --protective-msdos-label \
-  -partition_cyl_align off \
-  -partition_offset 16 \
-  -append_partition 2 C12A7328-F81F-11D2-BA4B-00A0C93EC93B iso-root/images/efiboot.img \
-  -appended_part_as_gpt \
-  -iso_mbr_part_type A2A0D0EB-E5B9-3344-87C0-68B6B72699C7 \
-  --boot-catalog-hide \
-  -R -J \
+  -isohybrid-mbr /usr/share/syslinux/isohdpfx.bin \
+  -isohybrid-gpt-basdat \
   iso-root/
 ```
 
-This creates a hybrid MBR/GPT ISO that boots from both USB and optical media without needing `isohybrid`.
+This creates a hybrid MBR/GPT ISO that boots from both USB and optical media. The `-isohybrid-mbr` flag requires `syslinux-nonlinux` to be installed.
 
 ### Step 7: Write to USB
 
@@ -560,8 +552,8 @@ Replace `/dev/sdX` with your actual USB device (check with `lsblk`).
 
    Once all warnings are cleared, click **"Begin Installation"**.
 4. The kickstart installs the base system from the DVD (~5 minutes)
-5. The system reboots into a command-line login screen. **Do not log in yet** — the first-boot service is running in the background, installing KDE Plasma, ZFS, kernel modules, and other required packages. This takes **5 to 10 minutes** depending on internet speed. You can monitor progress by logging in via SSH: `ssh <user>@<ip>` and running `sudo tail -f /root/project-tv-firstboot.log`
-6. Once complete, the system **reboots automatically** into the SDDM graphical login screen. Log in and run `sudo ./project_tv_rocky_linux/install.sh`
+5. The system reboots into a command-line login screen. **Do not log in yet** — the first-boot service is running in the background, updating all packages, installing KDE Plasma and essential KDE applications (konsole, dolphin, kate, spectacle, ark, okular, gwenview, kcalc), ZFS, kernel modules, and other required packages. This takes **5 to 10 minutes** depending on internet speed. You can monitor progress by logging in via SSH: `ssh <user>@<ip>` and running `sudo tail -f /root/project-tv-firstboot.log`
+6. Once complete, the system **reboots automatically** into the SDDM graphical login screen. Log in and the Project TV installer will launch automatically in a Konsole window. If the installer files were not found on the ISO, it will clone the repository from GitHub and run the installer
 
 ### Testing the ISO in a VM
 
