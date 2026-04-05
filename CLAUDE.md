@@ -4,14 +4,14 @@
 
 Kubernetes-based media server installer for Rocky Linux 10. Successor to Project TV v2 (Ubuntu/Docker).
 
-- **Repo**: github.com/metalllinux/project-tv-rocky-edition (PRIVATE)
+- **Repo**: github.com/metalllinux/project-tv-rocky-linux-edition (PRIVATE)
 - **Local path**: ~/Documents/projects/project_tv_rocky_linux
 - **Documentation site**: metalinux.dev/linux-journey/courses/project-tv-v3/
 - **Site repo**: ~/Documents/projects/github_pages (Jekyll, minimal-mistakes theme)
 
 ## Architecture
 
-- **OS**: Rocky Linux 10 (primary), also tested on Rocky 9 and 8
+- **OS**: Rocky Linux 10 (x86_64 only)
 - **Kubernetes**: kubeadm (full upstream) with containerd and Flannel CNI — NOT k3s
 - **Storage**: ZFS with dynamically created datasets (installer prompts user for names/mounts)
 - **Namespace**: `project-tv`
@@ -20,8 +20,8 @@ Kubernetes-based media server installer for Rocky Linux 10. Successor to Project
 
 | App | Port | NodePort | Image |
 |-----|------|----------|-------|
-| Mirakurun | 40772 | 30772 | chinachu/mirakurun |
-| EPGStation | 8888 | 30888 | l3tnun/epgstation |
+| Mirakurun | 40772 | 30772 | goodbaikin/mirakurun-with-recpt1 |
+| EPGStation | 8888 | 30888 | localhost/epgstation-ffmpeg (custom build with ffmpeg) |
 | MariaDB | 3306 | ClusterIP | mariadb:10.5 |
 | Jellyfin | 8096 | 30096 | lscr.io/linuxserver/jellyfin |
 | Tube Archivist | 8000 | 30800 | bbilly1/tubearchivist |
@@ -60,7 +60,7 @@ System setup first, then desktop/firewall, then K8s apps, then monitoring:
 00 Preflight → 01 Timezone → 02 ZFS → 03 Kubernetes → 04 Namespace → 05 Storage → 06 px4_drv
 → 17 Firewall → 16 SDDM → 15 Browser → 18 Desktop apps → 14 KDE → 12 Sanoid
 → 07 EPGStation → 08 Jellyfin → 09 Tube Archivist → 10 Navidrome → 11 Jellyfin refresh
-→ 13 Rsync → 19 Prometheus → 20 Grafana
+→ 19 Prometheus → 20 Grafana
 ```
 
 Module numbers are fixed (match filenames) but execution order is set by `MODULE_ORDER` in `install.sh`.
@@ -134,7 +134,10 @@ The custom ISO auto-installs Rocky Linux 10 with all prerequisites, then install
 ### Kickstart / ISO
 - **Installation source**: Use `harddrive --partition=LABEL=Rocky-10-1-x86_64-dvd --dir=/` — `cdrom` directive fails on USB boot ("Found no CD-ROM")
 - **Explicit repos required**: Add `repo --name="BaseOS"` and `repo --name="AppStream"` pointing to `file:///run/install/repo/` paths
-- **Project files copy**: `%post` runs in chroot where `/home` LV is mounted. Use `%post --nochroot` to copy to `/mnt/sysimage/tmp/`, then chroot `%post` moves to `/home/howard/`
+- **Project files copy**: `%post` runs in chroot where `/home` LV is mounted. Use `%post --nochroot` to copy to `/mnt/sysimage/tmp/`, then chroot `%post` moves to `/home/$INSTALL_USER/`
+- **User creation**: Kickstart no longer hardcodes user — Anaconda prompts for username/password. `%post` detects the user via `ls /home/`
+- **First boot wait**: KDE + packages install takes 5-10 minutes on first boot. System reboots automatically when done.
+- **Autostart**: If installer not found on first KDE login, it auto-clones from GitHub and runs
 - **Kernel version mismatch**: KDE install pulls newer kernel lacking `kernel-modules-extra`. Use `--exclude='kernel*'` on the dnf install line
 - **kernel-modules-extra**: Must be in `%packages` — provides `xt_conntrack`, `br_netfilter`, etc. needed by kube-proxy
 
@@ -164,18 +167,53 @@ The custom ISO auto-installs Rocky Linux 10 with all prerequisites, then install
 - **Never hardcode `nodeSelector` hostnames** — single-node cluster hostname varies per install
 - **hostPath permissions**: Prometheus runs as UID 65534 (nobody), Grafana as UID 472 — `chown` the data dirs in the module before deploying
 
+### Live TV streaming (EPGStation)
+- EPGStation needs `ffmpeg` for live streaming — base image doesn't include it, custom image built via `docker/epgstation/Dockerfile`
+- `encodeProcessNum: 4` must be set in config (default 0 blocks all streams)
+- `streamFilePath` (not `streamFilesDir`) is the correct config key
+- ffmpeg is at `/usr/bin/ffmpeg` not `/usr/local/bin/ffmpeg` in the custom image
+- `-map 0:v -map 0:a -ignore_unknown` required in ffmpeg commands to skip ARIB caption streams
+- B-CAS decoder (`arib-b25-stream-test`) must be enabled in tuners.yml
+- Mirakurun config must be on writable hostPath (not ConfigMap) for channel scan results to persist
+- After channel scan: restart Mirakurun (load channels), then restart EPGStation (pick up services)
+
+### Tube Archivist
+- `REDIS_HOST` env var deprecated — use `REDIS_CON` connection string format (`redis://host:6379`)
+- `TA_HOST` must be set to the actual access URL (`http://<ip>:30800`), not `0.0.0.0`
+
+### Intel Quick Sync Video (QSV)
+- Detected via `/dev/dri/renderD128`
+- Jellyfin: `/dev/dri` mounted dynamically when QSV detected (in `generate_jellyfin_deployment`)
+- EPGStation: `/dev/dri` mounted in deployment manifest
+- QSV log message inside `generate_jellyfin_deployment` must go to stderr (`>&2`), not stdout — stdout is captured by `$()`
+
 ### Desktop applications
 - **fcitx5-mozc**: Not available in Rocky 10 repos — use `ibus-anthy` for Japanese input
-- **SeaDrive**: Not on Flathub, RPM repo unresponsive — install via AppImage from Seafile's Linux client URL
+- **SeaDrive**: Not on Flathub, RPM repo unresponsive — show download URL instead of attempting download
 - **xdg-settings**: Fails when run as root — use `su - $SUDO_USER -c` to run as the invoking user
 
+### Navidrome
+- Liveness probe path: `/app` (not `/api/ping` which returns 404)
+
+### Variable scoping
+- Module `run()` functions must use `local` for loop variables — otherwise they overwrite parent scope variables from `install.sh` (caused `MODULE_DESC[$mod]: unbound variable` when module 00 used `for mod in ...` without `local`)
+
 ### Module re-run safety
-- ZFS module (02) must detect existing pools and skip pool creation on re-run
+- ZFS module (02) detects existing pools and offers: keep, add datasets, or destroy and recreate
+- K8s module (03) detects running cluster and skips if node is Ready
+- App modules (07-10) detect existing deployments and default to skipping
 - Modules should be idempotent — re-running should not break or duplicate resources
+
+### Preflight
+- Runs `dnf update` and detects kernel updates requiring reboot
+- Auto-installs missing prerequisites (kernel-devel, kernel-modules-extra, git, gcc, podman, etc.)
+- Kickstart no longer hardcodes username/password — Anaconda prompts, `%post` detects user via `ls /home/`
 
 ## Important notes
 
-- The AI Usage policy in README.md must exactly match metalllinux.github.io
+- The AI Usage policy follows the Fedora AI-Assisted Contribution Policy
+- Japanese translation maintained in `docs/ja/README.md` — must be kept in sync with English README
+- Always push commits to GitHub immediately after committing
 - px4_drv is GPL-2.0 — licence and attribution must be preserved
 - GitHub username is `metalllinux` (triple L), personal brand is `metalinux` (single L)
 - Never commit real passwords — secrets use `CHANGE_ME_*` or `PLACEHOLDER_*` markers
