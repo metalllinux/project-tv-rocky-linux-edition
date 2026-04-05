@@ -44,10 +44,10 @@ This repository follows the [Fedora AI-Assisted Contribution Policy](https://doc
 
 ## Reporting issues
 
-If you run into any problems, we would love to hear from you! Please open an [Issue](https://github.com/metalllinux/project-tv-rocky-linux-edition/issues) in the repository with a description of the problem. If possible, please also include:
+If you run into any problems, I would love to hear from you! Please open an [Issue](https://github.com/metalllinux/project-tv-rocky-linux-edition/issues) in the repository with a description of the problem. If possible, please also include:
 
 - **Installer log file** — found in the `logs/` directory after running the installer
-- **sosreport** — run `sudo sos report` to generate a system diagnostic report, which helps us understand your environment
+- **sosreport** — run `sudo sos report` to generate a system diagnostic report, which helps me understand your environment
 
 Any information you can provide will help us reproduce and fix the issue more quickly. Thank you for taking the time to report it!
 
