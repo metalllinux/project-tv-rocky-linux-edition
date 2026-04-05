@@ -17,6 +17,11 @@ A huge thank you goes to every single one of these open source software projects
 - **[Jellyfin](https://github.com/jellyfin/jellyfin)** — One of the best free software media systems. Licensed under **GPL-2.0**.
 - **[Tube Archivist](https://github.com/tubearchivist/tubearchivist)** by [bbilly1](https://github.com/bbilly1) — YouTube archive manager. Licensed under **GPL-3.0**.
 - **[Navidrome](https://github.com/navidrome/navidrome)** — Modern music server and streamer. Licensed under **GPL-3.0**.
+- **[Kubernetes](https://github.com/kubernetes/kubernetes)** — Container orchestration platform for automating deployment and scaling. Licensed under **Apache-2.0**.
+- **[Prometheus](https://github.com/prometheus/prometheus)** — Monitoring and alerting system with time-series database. Licensed under **Apache-2.0**.
+- **[Grafana](https://github.com/grafana/grafana)** — Open-source visualisation and monitoring platform. Licensed under **AGPL-3.0**.
+- **[Sanoid / Syncoid](https://github.com/jimsalterjrs/sanoid)** — ZFS snapshot management and replication tools. Licensed under **GPL-3.0**.
+- **[MakeMKV](https://www.makemkv.com/)** — DVD and Blu-ray disc ripper. Proprietary (free during beta).
 
 All third-party software retains its original licence. This project's installer scripts and Kubernetes manifests are provided under the MIT licence unless otherwise noted. Refer to individual upstream repositories for their respective licence terms.
 
