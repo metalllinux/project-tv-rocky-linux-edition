@@ -22,6 +22,14 @@ A huge thank you goes to every single one of these open source software projects
 - **[Grafana](https://github.com/grafana/grafana)** — Open-source visualisation and monitoring platform. Licensed under **AGPL-3.0**.
 - **[Sanoid / Syncoid](https://github.com/jimsalterjrs/sanoid)** — ZFS snapshot management and replication tools. Licensed under **GPL-3.0**.
 - **[MakeMKV](https://www.makemkv.com/)** — DVD and Blu-ray disc ripper. Proprietary (free during beta).
+- **[KDE Plasma](https://github.com/KDE/plasma-desktop)** — Feature-rich desktop environment. Licensed under **GPL-2.0**.
+- **[Google Chrome](https://www.google.com/chrome/)** — Web browser by Google. Proprietary.
+- **[Brave](https://brave.com/)** — Privacy-focused web browser. Licensed under **MPL-2.0**.
+- **[Waterfox](https://www.waterfox.net/)** — Privacy-focused Firefox fork. Licensed under **MPL-2.0**.
+- **[Firefox](https://www.mozilla.org/firefox/)** — Open-source web browser by Mozilla. Licensed under **MPL-2.0**.
+- **[Vivaldi](https://vivaldi.com/)** — Feature-rich web browser. Proprietary.
+- **[Chromium](https://www.chromium.org/)** — The open-source browser project behind Chrome. Licensed under **BSD-3-Clause**.
+- **[Microsoft Edge](https://www.microsoft.com/edge)** — Web browser by Microsoft. Proprietary.
 
 All third-party software retains its original licence. This project's installer scripts and Kubernetes manifests are provided under the MIT licence unless otherwise noted. Refer to individual upstream repositories for their respective licence terms.
 
