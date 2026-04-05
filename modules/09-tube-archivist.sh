@@ -41,6 +41,12 @@ run() {
         fi
     fi
 
+    # Set TA_HOST to the access URL
+    local host_ip
+    host_ip=$(hostname -I | awk '{print $1}')
+    sed -i "s|value: \"tubearchivist\"|value: \"http://${host_ip}:30800\"|" \
+        "$PROJECT_ROOT/manifests/tube-archivist/tubearchivist-deployment.yaml"
+
     # Ensure host directories
     mkdir -p /var/lib/project-tv/tube-archivist/{elasticsearch,redis,cache}
 

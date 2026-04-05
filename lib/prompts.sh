@@ -16,6 +16,9 @@ ask_yes_no() {
 
     while true; do
         read -rp "$prompt" answer
+        # Trim whitespace and carriage returns
+        answer="${answer%"${answer##*[![:space:]]}"}"
+        answer="${answer#"${answer%%[![:space:]]*}"}"
         case "${answer,,}" in
             y|yes) return 0 ;;
             n|no)  return 1 ;;

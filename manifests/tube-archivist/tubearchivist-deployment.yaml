@@ -54,7 +54,7 @@ spec:
         - name: HOST_GID
           value: "1000"
         - name: TA_HOST
-          value: "0.0.0.0"
+          value: "tubearchivist"
         - name: TZ
           value: "Asia/Tokyo"
         - name: TA_USERNAME
