@@ -596,6 +596,31 @@ If you encounter issues not covered here:
 
 ## Licence
 
-Installer scripts and Kubernetes manifests in this repository are provided under the [MIT Licence](LICENSE) unless otherwise noted. Third-party software (px4_drv, EPGStation, Mirakurun, Jellyfin, Tube Archivist, Navidrome) retains its original licence — see each upstream repository for details.
+Installer scripts and Kubernetes manifests in this repository are provided under the [MIT Licence](LICENSE) unless otherwise noted.
 
-The px4_drv driver is licensed under [GPL-2.0](https://github.com/tsukumijima/px4_drv/blob/develop/LICENSE). The RPM packaging in this repository respects and preserves this licence.
+All third-party software retains its original licence. The following licences apply to the software deployed by this installer:
+
+| Software | Licence |
+|----------|---------|
+| Rocky Linux | BSD-3-Clause |
+| px4_drv | GPL-2.0 |
+| EPGStation | MIT |
+| Mirakurun | Apache-2.0 |
+| Jellyfin | GPL-2.0 |
+| Tube Archivist | GPL-3.0 |
+| Navidrome | GPL-3.0 |
+| Kubernetes | Apache-2.0 |
+| Prometheus | Apache-2.0 |
+| Grafana | AGPL-3.0 |
+| Sanoid / Syncoid | GPL-3.0 |
+| KDE Plasma | GPL-2.0 |
+| Brave | MPL-2.0 |
+| Waterfox | MPL-2.0 |
+| Firefox | MPL-2.0 |
+| Chromium | BSD-3-Clause |
+| MakeMKV | Proprietary |
+| Google Chrome | Proprietary |
+| Vivaldi | Proprietary |
+| Microsoft Edge | Proprietary |
+
+See each upstream repository for full licence terms.
