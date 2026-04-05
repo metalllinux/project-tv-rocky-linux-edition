@@ -10,6 +10,8 @@ This project is the successor to [Project TV v2 (Ubuntu)](https://metalinux.dev/
 
 A huge thank you goes to every single one of these software projects, without them this script would have not been possible - please show them your support:
 
+**Open source:**
+
 - **[Rocky Linux](https://rockylinux.org/)** — The foundation that makes this project possible. A fantastic community enterprise operating system. Licensed under **BSD-3-Clause**.
 - **[px4_drv](https://github.com/tsukumijima/px4_drv)** by [tsukumijima](https://github.com/tsukumijima) (originally by [nns779](https://github.com/nns779/px4_drv)) — Linux driver for PLEX and e-Better TV tuner devices. Licensed under **GPL-2.0**. A big thank you to the work done here on the driver by all the prior contributors and without this initial work, the RPM version of the driver could not have been created.
 - **[EPGStation](https://github.com/l3tnun/EPGStation)** by [l3tnun](https://github.com/l3tnun) — Digital broadcast recording system. Licensed under **MIT**.
@@ -21,15 +23,18 @@ A huge thank you goes to every single one of these software projects, without th
 - **[Prometheus](https://github.com/prometheus/prometheus)** — Monitoring and alerting system with time-series database. Licensed under **Apache-2.0**.
 - **[Grafana](https://github.com/grafana/grafana)** — Open-source visualisation and monitoring platform. Licensed under **AGPL-3.0**.
 - **[Sanoid / Syncoid](https://github.com/jimsalterjrs/sanoid)** — ZFS snapshot management and replication tools. Licensed under **GPL-3.0**.
-- **[MakeMKV](https://www.makemkv.com/)** — DVD and Blu-ray disc ripper. Proprietary.
 - **[KDE Plasma](https://github.com/KDE/plasma-desktop)** — Feature-rich desktop environment. Licensed under **GPL-2.0**.
-- **[Google Chrome](https://www.google.com/chrome/)** — Web browser by Google. Proprietary.
 - **[Brave](https://brave.com/)** — Privacy-focused web browser. Licensed under **MPL-2.0**.
 - **[Waterfox](https://www.waterfox.net/)** — Privacy-focused Firefox fork. Licensed under **MPL-2.0**.
 - **[Firefox](https://www.mozilla.org/firefox/)** — Open-source web browser by Mozilla. Licensed under **MPL-2.0**.
-- **[Vivaldi](https://vivaldi.com/)** — Feature-rich web browser. Proprietary.
 - **[Chromium](https://www.chromium.org/)** — The open-source browser project behind Chrome. Licensed under **BSD-3-Clause**.
-- **[Microsoft Edge](https://www.microsoft.com/edge)** — Web browser by Microsoft. Proprietary.
+
+**Proprietary:**
+
+- **[MakeMKV](https://www.makemkv.com/)** — DVD and Blu-ray disc ripper.
+- **[Google Chrome](https://www.google.com/chrome/)** — Web browser by Google.
+- **[Vivaldi](https://vivaldi.com/)** — Feature-rich web browser.
+- **[Microsoft Edge](https://www.microsoft.com/edge)** — Web browser by Microsoft.
 
 All third-party software retains its original licence. This project's installer scripts and Kubernetes manifests are provided under the MIT licence unless otherwise noted. Refer to individual upstream repositories for their respective licence terms.
 
