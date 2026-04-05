@@ -88,12 +88,16 @@ Other px4_drv-supported tuners (PX-Q3PE5, PX-Q3U4, PX-MLT5PE, etc.) should also 
 - Internet connection (for downloading packages and container images)
 - A user account with sudo privileges
 
+## Important: No rollback functionality
+
+This installer makes significant changes to your system, including installing packages, configuring Kubernetes, modifying kernel parameters, and creating ZFS pools. **There is no built-in rollback or undo functionality.** If you are deploying this on an existing Rocky Linux 10 system, create a full system image or snapshot before running the installer.
+
 ## Quick start
 
 ```bash
 # Clone the repository
-git clone https://github.com/Metalllinux/project-tv-rocky-edition.git
-cd project-tv-rocky-edition
+git clone https://github.com/metalllinux/project-tv-rocky-linux-edition.git
+cd project-tv-rocky-linux-edition
 
 # Run the installer
 sudo ./install.sh
@@ -145,7 +149,7 @@ Modules are executed in the following order during a full installation. Module n
 
 **Kubernetes application deployments:** 07 → 08 → 09 → 10 → 11
 
-**Extras and monitoring:** 13 → 19 → 20
+**Monitoring:** 19 → 20
 
 ---
 
@@ -336,10 +340,6 @@ Creates a Kubernetes CronJob that periodically calls the Jellyfin REST API to re
 2. Walks you through generating an API key: Settings > Administration > Dashboard > API Keys > New API Key
 3. Validates the cron schedule format (displays a visual diagram of the five fields)
 4. Deploys the CronJob (default: runs every hour)
-
-### Module 13 — Rsync media sync
-
-Configures rsync-based backup of ZFS datasets to a remote server. Prompts for backup server, SSH user, and remote path.
 
 ### Module 19 — Prometheus monitoring
 

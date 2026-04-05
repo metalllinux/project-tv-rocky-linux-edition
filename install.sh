@@ -35,7 +35,6 @@ MODULE_DESC=(
     [10]="Navidrome"
     [11]="Jellyfin library refresh"
     [12]="Sanoid snapshots"
-    [13]="Rsync media sync"
     [14]="KDE customisation"
     [15]="Browser installation"
     [16]="SDDM autologin"
@@ -47,8 +46,8 @@ MODULE_DESC=(
 
 # Module order
 # System setup first (00-06), then desktop/firewall/storage (12,14-18),
-# then K8s apps (07-11), then monitoring (13,19-20)
-MODULE_ORDER=(00 01 02 03 04 05 06 17 16 15 18 14 12 07 08 09 10 11 13 19 20)
+# then K8s apps (07-11), then monitoring (19-20)
+MODULE_ORDER=(00 01 02 03 04 05 06 17 16 15 18 14 12 07 08 09 10 11 19 20)
 
 # Status tracking file
 STATUS_FILE="$PROJECT_ROOT/logs/.install-status"
