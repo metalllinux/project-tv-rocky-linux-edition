@@ -11,7 +11,7 @@ This project is the successor to [Project TV v2 (Ubuntu)](https://metalinux.dev/
 A huge thank you goes to every single one of these software projects, without them this script would have not been possible - please show them your support:
 
 - **[Rocky Linux](https://rockylinux.org/)** — The foundation that makes this project possible. A fantastic community enterprise operating system. Licensed under **BSD-3-Clause**.
-- **[px4_drv](https://github.com/tsukumijima/px4_drv)** by [tsukumijima](https://github.com/tsukumijima) (originally by [nns779](https://github.com/nns779/px4_drv)) — Linux driver for PLEX and e-Better TV tuner devices. Licensed under **GPL-2.0**.
+- **[px4_drv](https://github.com/tsukumijima/px4_drv)** by [tsukumijima](https://github.com/tsukumijima) (originally by [nns779](https://github.com/nns779/px4_drv)) — Linux driver for PLEX and e-Better TV tuner devices. Licensed under **GPL-2.0**. A big thank you to the work done here on the driver by all the prior contributors and without this initial work, the RPM version of the driver could not have been created.
 - **[EPGStation](https://github.com/l3tnun/EPGStation)** by [l3tnun](https://github.com/l3tnun) — Digital broadcast recording system. Licensed under **MIT**.
 - **[Mirakurun](https://github.com/Chinachu/Mirakurun)** by [Chinachu](https://github.com/Chinachu) — Digital broadcast tuner server. Licensed under **Apache-2.0**.
 - **[Jellyfin](https://github.com/jellyfin/jellyfin)** — One of the best free software media systems. Licensed under **GPL-2.0**.
