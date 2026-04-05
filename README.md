@@ -21,7 +21,7 @@ A huge thank you goes to every single one of these open source software projects
 - **[Prometheus](https://github.com/prometheus/prometheus)** — Monitoring and alerting system with time-series database. Licensed under **Apache-2.0**.
 - **[Grafana](https://github.com/grafana/grafana)** — Open-source visualisation and monitoring platform. Licensed under **AGPL-3.0**.
 - **[Sanoid / Syncoid](https://github.com/jimsalterjrs/sanoid)** — ZFS snapshot management and replication tools. Licensed under **GPL-3.0**.
-- **[MakeMKV](https://www.makemkv.com/)** — DVD and Blu-ray disc ripper. Proprietary (free during beta).
+- **[MakeMKV](https://www.makemkv.com/)** — DVD and Blu-ray disc ripper. Proprietary.
 - **[KDE Plasma](https://github.com/KDE/plasma-desktop)** — Feature-rich desktop environment. Licensed under **GPL-2.0**.
 - **[Google Chrome](https://www.google.com/chrome/)** — Web browser by Google. Proprietary.
 - **[Brave](https://brave.com/)** — Privacy-focused web browser. Licensed under **MPL-2.0**.
