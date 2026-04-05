@@ -40,7 +40,7 @@ All third-party software retains its original licence. This project's installer 
 
 ## AI Usage
 
-This repository follows the [Fedora AI-Assisted Contribution Policy](https://docs.fedoraproject.org/en-US/council/policy/ai-contribution-policy/). Claude's Opus 4.6 model was used to create everything, with human testing and review for verification and improvements.
+This repository follows the [Fedora AI-Assisted Contribution Policy](https://docs.fedoraproject.org/en-US/council/policy/ai-contribution-policy/). Claude's Opus 4.6 model and Claude Code was used to create everything, with human testing and review performed throughout the development process.
 
 ## Overview
 
@@ -179,6 +179,8 @@ Verifies the system meets all requirements before installation begins:
 - Confirms Rocky Linux 10
 - Checks CPU architecture (x86_64 required), RAM (16 GB recommended), and CPU cores (4+ recommended)
 - Tests internet connectivity to `dl.rockylinux.org`
+- **Runs `dnf update`** to ensure all system packages are current. If the kernel is updated or packages require a reboot, the installer informs the user and offers to reboot. The installer must be re-run after rebooting.
+- Detects Intel Quick Sync Video (QSV) for hardware-accelerated encoding
 - Detects PX TV tuner hardware and SmartCard reader via USB
 - Lists available block devices for ZFS pool creation
 - **Installs missing prerequisites** — if packages like `kernel-devel`, `kernel-modules-extra`, `git`, `gcc`, `podman`, or `epel-release` are missing, offers to install them automatically
@@ -194,7 +196,10 @@ This module allows the installer to work on **any Rocky Linux 10 machine**, not 
 
 ### Module 02 — ZFS storage
 
-Creates a ZFS pool and datasets for media storage. If ZFS is already installed and a pool exists, the module detects it and skips to completion.
+Creates a ZFS pool and datasets for media storage. If ZFS is already installed and a pool exists, the module offers three options:
+1. Keep existing pool and datasets (no changes)
+2. Add new datasets to the existing pool
+3. Destroy the pool and start fresh (with confirmation — deletes all data)
 
 **On a fresh system:**
 1. Installs ZFS via DKMS from the OpenZFS repository
