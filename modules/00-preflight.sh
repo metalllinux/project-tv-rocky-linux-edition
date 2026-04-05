@@ -88,35 +88,43 @@ run() {
     kernel_before=$(rpm -q kernel --last 2>/dev/null | head -1)
     if ask_yes_no "Run dnf update to ensure all packages are up to date?"; then
         log_info "Running dnf update (this may take a few minutes)..."
-        dnf update -y 2>&1
-        log_success "System update complete"
+        local update_output
+        update_output=$(dnf update -y 2>&1)
+        echo "$update_output"
 
-        # Check if the kernel was updated
-        local kernel_after
-        kernel_after=$(rpm -q kernel --last 2>/dev/null | head -1)
-        if [[ "$kernel_before" != "$kernel_after" ]]; then
-            log_warn "The kernel has been updated. A reboot is required before continuing."
-            log_info "After rebooting, run the installer again: sudo ./install.sh"
-            echo ""
-            if ask_yes_no "Reboot now?"; then
-                log_info "Rebooting..."
-                systemctl reboot
-            fi
-            return 1
-        fi
-
-        # Check if any other packages need a reboot
-        if needs-restarting -r &>/dev/null; then
-            : # no reboot needed
+        # Check whether dnf actually updated anything
+        if echo "$update_output" | grep -q "^Nothing to do"; then
+            log_success "System is already up to date"
         else
-            log_warn "Some updated packages require a reboot to take effect."
-            log_info "After rebooting, run the installer again: sudo ./install.sh"
-            echo ""
-            if ask_yes_no "Reboot now?"; then
-                log_info "Rebooting..."
-                systemctl reboot
+            log_success "System update complete"
+
+            # Check if the kernel was updated
+            local kernel_after
+            kernel_after=$(rpm -q kernel --last 2>/dev/null | head -1)
+            if [[ "$kernel_before" != "$kernel_after" ]]; then
+                log_warn "The kernel has been updated. A reboot is required before continuing."
+                log_info "After rebooting, run the installer again: sudo ./install.sh"
+                echo ""
+                if ask_yes_no "Reboot now?"; then
+                    log_info "Rebooting..."
+                    systemctl reboot
+                fi
+                return 1
             fi
-            return 1
+
+            # Check if any other packages need a reboot
+            if needs-restarting -r &>/dev/null; then
+                : # no reboot needed
+            else
+                log_warn "Some updated packages require a reboot to take effect."
+                log_info "After rebooting, run the installer again: sudo ./install.sh"
+                echo ""
+                if ask_yes_no "Reboot now?"; then
+                    log_info "Rebooting..."
+                    systemctl reboot
+                fi
+                return 1
+            fi
         fi
     fi
 
