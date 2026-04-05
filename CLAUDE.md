@@ -144,6 +144,9 @@ The custom ISO auto-installs Rocky Linux 10 with all prerequisites, then install
 - **Autostart**: If installer not found on first KDE login, it auto-clones from GitHub and runs
 - **Kernel version mismatch**: KDE install pulls newer kernel lacking `kernel-modules-extra`. Use `--exclude='kernel*'` on the dnf install line
 - **kernel-modules-extra**: Must be in `%packages` — provides `xt_conntrack`, `br_netfilter`, etc. needed by kube-proxy
+- **dnf update before KDE**: Must run `dnf update -y` before the KDE group install — stale package versions from the ISO (e.g. `firewalld`, `vim-data`) conflict with repo versions, causing the entire `@"KDE Plasma Workspaces"` group install to fail
+- **KDE apps not in group**: `@"KDE Plasma Workspaces"` only installs the desktop shell — konsole, dolphin, kate, spectacle, ark, okular, gwenview, kcalc must be installed explicitly. Without konsole, the autostart installer prompt silently fails
+- **ISO xorriso boot image**: BIOS eltorito path is `boot/grub2/i386-pc/cdboot.img` (not `eltorito.img`). Requires `syslinux-nonlinux` package for `/usr/share/syslinux/isohdpfx.bin`
 
 ### Kubernetes networking
 - **kube-proxy requires**: `nf_conntrack`, `xt_conntrack`, `xt_comment`, `xt_mark`, `ip_tables`, `ip6_tables`, `nf_nat`, `br_netfilter`, `overlay`
