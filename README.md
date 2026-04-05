@@ -42,6 +42,15 @@ All third-party software retains its original licence. This project's installer 
 
 This repository follows the [Fedora AI-Assisted Contribution Policy](https://docs.fedoraproject.org/en-US/council/policy/ai-contribution-policy/). Claude's Opus 4.6 model and Claude Code was used to create everything, with human testing and review performed throughout the development process.
 
+## Reporting issues
+
+If you run into any problems, we would love to hear from you! Please open an [Issue](https://github.com/metalllinux/project-tv-rocky-linux-edition/issues) in the repository with a description of the problem. If possible, please also include:
+
+- **Installer log file** — found in the `logs/` directory after running the installer
+- **sosreport** — run `sudo sos report` to generate a system diagnostic report, which helps us understand your environment
+
+Any information you can provide will help us reproduce and fix the issue more quickly. Thank you for taking the time to report it!
+
 ## Overview
 
 Project TV - Rocky Linux Edition transforms a Rocky Linux 10 system into a fully featured media server running on Kubernetes. The interactive installer walks you through every step, from ZFS storage setup to application deployment.
