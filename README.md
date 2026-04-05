@@ -10,13 +10,13 @@ This project is the successor to [Project TV v2 (Ubuntu)](https://metalinux.dev/
 
 A huge thank you goes to every single one of these open source software projects, without them this script would have not been possible - please show them your support:
 
-- **[Rocky Linux](https://rockylinux.org/)** — The foundation that makes this project possible. A fantastic community enterprise operating system.
-- **[px4_drv](https://github.com/tsukumijima/px4_drv)** by [tsukumijima](https://github.com/tsukumijima) (originally by [nns779](https://github.com/nns779/px4_drv)) — Linux driver for PLEX and e-Better TV tuner devices. Licensed under **GPL-2.0**. See the [px4_drv LICENSE](https://github.com/tsukumijima/px4_drv/blob/develop/LICENSE) for full text.
-- **[EPGStation](https://github.com/l3tnun/EPGStation)** by [l3tnun](https://github.com/l3tnun) — Digital broadcast recording system
-- **[Mirakurun](https://github.com/Chinachu/Mirakurun)** by [Chinachu](https://github.com/Chinachu) — Digital broadcast tuner server
-- **[Jellyfin](https://github.com/jellyfin/jellyfin)** — Free software media system
-- **[Tube Archivist](https://github.com/tubearchivist/tubearchivist)** by [bbilly1](https://github.com/bbilly1) — YouTube archive manager
-- **[Navidrome](https://github.com/navidrome/navidrome)** — Modern music server and streamer
+- **[Rocky Linux](https://rockylinux.org/)** — The foundation that makes this project possible. A fantastic community enterprise operating system. Licensed under **BSD-3-Clause**.
+- **[px4_drv](https://github.com/tsukumijima/px4_drv)** by [tsukumijima](https://github.com/tsukumijima) (originally by [nns779](https://github.com/nns779/px4_drv)) — Linux driver for PLEX and e-Better TV tuner devices. Licensed under **GPL-2.0**.
+- **[EPGStation](https://github.com/l3tnun/EPGStation)** by [l3tnun](https://github.com/l3tnun) — Digital broadcast recording system. Licensed under **MIT**.
+- **[Mirakurun](https://github.com/Chinachu/Mirakurun)** by [Chinachu](https://github.com/Chinachu) — Digital broadcast tuner server. Licensed under **Apache-2.0**.
+- **[Jellyfin](https://github.com/jellyfin/jellyfin)** — Free software media system. Licensed under **GPL-2.0**.
+- **[Tube Archivist](https://github.com/tubearchivist/tubearchivist)** by [bbilly1](https://github.com/bbilly1) — YouTube archive manager. Licensed under **GPL-3.0**.
+- **[Navidrome](https://github.com/navidrome/navidrome)** — Modern music server and streamer. Licensed under **GPL-3.0**.
 
 All third-party software retains its original licence. This project's installer scripts and Kubernetes manifests are provided under the MIT licence unless otherwise noted. Refer to individual upstream repositories for their respective licence terms.
 
