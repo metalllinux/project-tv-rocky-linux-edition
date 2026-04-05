@@ -14,7 +14,7 @@ A huge thank you goes to every single one of these open source software projects
 - **[px4_drv](https://github.com/tsukumijima/px4_drv)** by [tsukumijima](https://github.com/tsukumijima) (originally by [nns779](https://github.com/nns779/px4_drv)) — Linux driver for PLEX and e-Better TV tuner devices. Licensed under **GPL-2.0**.
 - **[EPGStation](https://github.com/l3tnun/EPGStation)** by [l3tnun](https://github.com/l3tnun) — Digital broadcast recording system. Licensed under **MIT**.
 - **[Mirakurun](https://github.com/Chinachu/Mirakurun)** by [Chinachu](https://github.com/Chinachu) — Digital broadcast tuner server. Licensed under **Apache-2.0**.
-- **[Jellyfin](https://github.com/jellyfin/jellyfin)** — Free software media system. Licensed under **GPL-2.0**.
+- **[Jellyfin](https://github.com/jellyfin/jellyfin)** — One of the best free software media systems. Licensed under **GPL-2.0**.
 - **[Tube Archivist](https://github.com/tubearchivist/tubearchivist)** by [bbilly1](https://github.com/bbilly1) — YouTube archive manager. Licensed under **GPL-3.0**.
 - **[Navidrome](https://github.com/navidrome/navidrome)** — Modern music server and streamer. Licensed under **GPL-3.0**.
 
