@@ -31,7 +31,7 @@ install_seadrive() {
     echo ""
     echo "After downloading, place the AppImage in ~/Applications/ and make it executable:"
     echo "  mkdir -p ~/Applications"
-    echo "  mv ~/Downloads/seadrive-gui_*.AppImage ~/Applications/SeaDrive.AppImage"
+    echo "  mv ~/Downloads/SeaDrive*.AppImage ~/Applications/SeaDrive.AppImage"
     echo "  chmod +x ~/Applications/SeaDrive.AppImage"
     echo ""
     log_success "SeaDrive download instructions displayed"
