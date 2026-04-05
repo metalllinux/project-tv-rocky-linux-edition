@@ -52,6 +52,8 @@ Rocky Linux 10 (Host)
 │   ├── Jellyfin (media server, port 8096)
 │   ├── Tube Archivist + Redis + Elasticsearch (YouTube archiving, port 8000)
 │   ├── Navidrome (music server, port 4533)
+│   ├── Prometheus + Node Exporter (monitoring, port 9090)
+│   ├── Grafana (dashboards, port 3000)
 │   └── CronJob: Jellyfin library refresh (hourly)
 ├── Sanoid (ZFS snapshot management)
 ├── KDE Plasma (desktop environment)
@@ -134,7 +136,7 @@ Project TV - Rocky Linux Edition Installer
 
 **[1] Full Installation** — Runs all modules in the execution order shown below. Before each module, you are asked whether to run it or skip it. If a module has already been completed, you are asked whether to re-run it. If a module fails, you can choose to continue with the next module or stop.
 
-**[2] Run a specific module** — Displays a numbered list of all 21 modules (00–20) sorted numerically. Enter a module number to run it individually. Single digits are accepted (typing `5` is the same as `05`). Modules that have already been completed are marked `(done)`.
+**[2] Run a specific module** — Displays a numbered list of all 20 modules (00–12, 14–20) sorted numerically. Enter a module number to run it individually. Single digits are accepted (typing `5` is the same as `05`). Modules that have already been completed are marked `(done)`.
 
 **[3] View installation status** — Shows a table of all modules with their current status: `[OK]` completed, `[!!]` failed, `[--]` skipped, or `[  ]` pending.
 
@@ -253,7 +255,7 @@ Installs the px4_drv DKMS kernel module for PLEX TV tuner devices (PX-W3PE5, PX-
 
 Configures firewalld with ports for all services. If firewalld is not running, offers to enable it first.
 
-**Ports opened:** Jellyfin (30096), EPGStation (30888/30889), Mirakurun (30772), Tube Archivist (30800), Navidrome (30453), Kubernetes API (6443), kubelet (10250).
+**Ports opened:** Jellyfin (8096/30096), EPGStation (8888/30888, 8889/30889), Mirakurun (40772/30772), Tube Archivist (8000/30800), Navidrome (4533/30453), Prometheus (30090), Grafana (30300), Node Exporter (9100), Kubernetes API (6443), kubelet (10250).
 
 ### Module 16 — SDDM autologin
 
