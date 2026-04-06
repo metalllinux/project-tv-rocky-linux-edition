@@ -23,6 +23,12 @@ run() {
 }
 
 install_seadrive() {
+    # AppImages require FUSE to mount themselves — install fuse (provides fusermount)
+    if ! rpm -q fuse &>/dev/null; then
+        log_info "Installing fuse (required for AppImage)..."
+        dnf install -y fuse 2>&1 || true
+    fi
+
     echo ""
     echo "SeaDrive (Seafile virtual drive client)"
     echo ""
