@@ -34,6 +34,30 @@ generate_jellyfin_deployment() {
           type: DirectoryOrCreate"
             idx=$((idx + 1))
         done
+
+        # Mount EPGStation recorded TV directory so Jellyfin can access recordings
+        local epg_recorded
+        epg_recorded=$(grep '^EPGSTATION_RECORDED=' "$storage_conf" 2>/dev/null | cut -d= -f2)
+        if [[ -n "$epg_recorded" ]]; then
+            local epg_dir_name
+            epg_dir_name=$(basename "$epg_recorded")
+            local epg_k8s_name
+            epg_k8s_name=$(echo "$epg_dir_name" | tr '[:upper:]' '[:lower:]' | tr '_' '-')
+
+            # Only add if not already included in JELLYFIN_MEDIA
+            if ! echo "$jellyfin_media" | grep -q "$epg_recorded"; then
+                log_info "Adding EPGStation recorded path to Jellyfin: $epg_recorded"
+                volume_mounts="${volume_mounts}
+        - name: media-${epg_k8s_name}
+          mountPath: /data/${epg_dir_name}"
+
+                volumes="${volumes}
+      - name: media-${epg_k8s_name}
+        hostPath:
+          path: ${epg_recorded}
+          type: DirectoryOrCreate"
+            fi
+        fi
     elif [[ -f "$DATASETS_CONF" ]]; then
         while IFS=: read -r ds_name ds_mount; do
             [[ "$ds_name" =~ ^#.*$ ]] && continue
@@ -183,6 +207,10 @@ run() {
     log_success "Jellyfin deployed"
     echo ""
     echo "Access: http://${host_ip}:30096"
+    echo ""
+    echo "EPGStation's recorded TV directory is mounted inside Jellyfin."
+    echo "To add it as a Media Library, go to Administration > Libraries > Add Media Library"
+    echo "and select the /data/ directory matching your TV recordings path."
     echo ""
     echo "IMPORTANT: After completing the Jellyfin setup wizard, generate an API key:"
     echo "  1. Go to Administration > API Keys"
