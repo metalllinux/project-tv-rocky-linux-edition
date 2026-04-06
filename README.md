@@ -200,7 +200,7 @@ Modules are executed in the following order during a full installation. Module n
 
 **Kubernetes application deployments:** 07 → 08 → 09 → 10 → 11
 
-**Monitoring and remote access:** 19 → 20 → 21
+**Monitoring:** 19 → 20
 
 ---
 
@@ -296,7 +296,7 @@ Installs the px4_drv DKMS kernel module for PLEX TV tuner devices (PX-W3PE5, PX-
 
 Configures firewalld with ports for all services. If firewalld is not running, offers to enable it first.
 
-**Ports opened:** Jellyfin (8096/30096), EPGStation (8888/30888, 8889/30889), Mirakurun (40772/30772), Tube Archivist (8000/30800), Navidrome (4533/30453), Prometheus (30090), Grafana (30300), Node Exporter (9100), Kubernetes API (6443), kubelet (10250), VNC (5900).
+**Ports opened:** Jellyfin (8096/30096), EPGStation (8888/30888, 8889/30889), Mirakurun (40772/30772), Tube Archivist (8000/30800), Navidrome (4533/30453), Prometheus (30090), Grafana (30300), Node Exporter (9100), Kubernetes API (6443), kubelet (10250).
 
 ### Module 16 — SDDM autologin
 
@@ -414,17 +414,6 @@ Deploys Grafana on Kubernetes with Prometheus pre-configured as a data source:
 - Sets correct ownership (UID 472 / grafana) on the data directory
 
 **After deployment:** `http://<host-ip>:30300`
-
-### Module 21 — VNC server (remote desktop)
-
-Sets up krfb (KDE Desktop Sharing) for remote desktop access via VNC:
-- Installs krfb if not already present
-- Prompts for a VNC password
-- Configures unattended access so no desktop confirmation is needed
-- Creates a KDE autostart entry so krfb starts on every login
-- Opens firewall port 5900/tcp
-
-**After setup:** Connect with any VNC client to `<host-ip>:5900`
 
 ## Building the custom Rocky Linux 10 ISO (optional)
 

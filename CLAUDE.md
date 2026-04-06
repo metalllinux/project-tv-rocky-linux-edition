@@ -58,13 +58,13 @@ logs/                     # Created at runtime (gitignored)
 
 ## Module execution order
 
-System setup first, then desktop/firewall, then K8s apps, then monitoring and remote access:
+System setup first, then desktop/firewall, then K8s apps, then monitoring:
 
 ```
 00 Preflight → 01 Timezone → 02 ZFS → 03 Kubernetes → 04 Namespace → 05 Storage → 06 px4_drv
 → 17 Firewall → 16 SDDM → 15 Browser → 18 Desktop apps → 14 KDE → 12 Sanoid
 → 07 EPGStation → 08 Jellyfin → 09 Tube Archivist → 10 Navidrome → 11 Jellyfin refresh
-→ 19 Prometheus → 20 Grafana → 21 VNC
+→ 19 Prometheus → 20 Grafana
 ```
 
 Module numbers are fixed (match filenames) but execution order is set by `MODULE_ORDER` in `install.sh`.
