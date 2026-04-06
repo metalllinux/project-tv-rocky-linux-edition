@@ -38,12 +38,15 @@ run() {
     done
 
     # Configure krfb for unattended access
+    # krfb stores the password as base64-encoded
+    local vnc_password_b64
+    vnc_password_b64=$(echo -n "$vnc_password" | base64)
     log_info "Configuring krfb for unattended VNC access..."
     mkdir -p "$target_home/.config"
     cat > "$target_home/.config/krfbrc" << EOF
 [Unattended]
 allowUnattendedAccess=true
-unattendedPassword=$vnc_password
+unattendedPassword=$vnc_password_b64
 
 [Desktop Sharing]
 allowDesktopControl=true
