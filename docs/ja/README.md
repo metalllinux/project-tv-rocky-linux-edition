@@ -174,7 +174,7 @@ Project TV - Rocky Linux Edition Installer
 
 **Kubernetesアプリケーションデプロイ:** 07 → 08 → 09 → 10 → 11
 
-**追加機能・モニタリング:** 13 → 19 → 20
+**モニタリング・リモートアクセス:** 13 → 19 → 20 → 21
 
 ---
 
@@ -265,7 +265,7 @@ PLEX TVチューナーデバイス（PX-W3PE5、PX-Q3PE5等）用のpx4_drv DKMS
 
 全サービスのポートでfirewalldを設定します。firewalldが稼働していない場合、有効化を提案します。
 
-**開放ポート：** Jellyfin（30096）、EPGStation（30888/30889）、Mirakurun（30772）、Tube Archivist（30800）、Navidrome（30453）、Kubernetes API（6443）、kubelet（10250）。
+**開放ポート：** Jellyfin（30096）、EPGStation（30888/30889）、Mirakurun（30772）、Tube Archivist（30800）、Navidrome（30453）、Prometheus（30090）、Grafana（30300）、Node Exporter（9100）、Kubernetes API（6443）、kubelet（10250）、VNC（5900）。
 
 ### モジュール16 — SDDM自動ログイン
 
@@ -392,6 +392,17 @@ Prometheusをデフォルトデータソースとして設定済みのGrafanaを
 - データディレクトリに正しい所有権（UID 472 / grafana）を設定
 
 **デプロイ後：** `http://<ホストIP>:30300`
+
+### モジュール21 — VNCサーバー（リモートデスクトップ）
+
+krfb（KDEデスクトップ共有）を使用してVNC経由のリモートデスクトップアクセスを設定：
+- krfbがインストールされていない場合はインストール
+- VNCパスワードを入力
+- デスクトップでの確認不要な無人アクセスを設定
+- KDE自動起動エントリを作成し、ログイン時にkrfbを自動起動
+- ファイアウォールポート5900/tcpを開放
+
+**設定後：** 任意のVNCクライアントで `<ホストIP>:5900` に接続
 
 ## カスタムRocky Linux 10 ISOのビルド
 

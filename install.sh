@@ -42,12 +42,13 @@ MODULE_DESC=(
     [18]="Desktop applications"
     [19]="Prometheus monitoring"
     [20]="Grafana dashboards"
+    [21]="VNC server (remote desktop)"
 )
 
 # Module order
 # System setup first (00-06), then desktop/firewall/storage (12,14-18),
 # then K8s apps (07-11), then monitoring (19-20)
-MODULE_ORDER=(00 01 02 03 04 05 06 17 16 15 18 14 12 07 08 09 10 11 19 20)
+MODULE_ORDER=(00 01 02 03 04 05 06 17 16 15 18 14 12 07 08 09 10 11 19 20 21)
 
 # Status tracking file
 STATUS_FILE="$PROJECT_ROOT/logs/.install-status"
