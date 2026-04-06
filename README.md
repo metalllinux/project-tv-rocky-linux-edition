@@ -74,6 +74,28 @@ Rocky Linux 10 (Host)
 └── px4_drv (TV tuner kernel driver via DKMS RPM)
 ```
 
+### Screenshots
+
+**EPGStation** — Live TV streaming with programme guide and recording management
+
+![EPGStation](docs/screenshots/epstation.png)
+
+**Jellyfin** — Media server with hardware-accelerated playback via Intel Quick Sync Video
+
+![Jellyfin](docs/screenshots/jellyfin.png)
+
+**Navidrome** — Music server and streamer with a clean web interface
+
+![Navidrome](docs/screenshots/navidrome.png)
+
+**Tube Archivist** — YouTube channel archiving and download management
+
+![Tube Archivist](docs/screenshots/tubearchivist.png)
+
+**MakeMKV** — DVD and Blu-ray disc ripping with LibreDrive support
+
+![MakeMKV](docs/screenshots/makemkv.png)
+
 ### Key improvements over Project TV v2
 
 - **Kubernetes** replaces Docker Compose for container orchestration
