@@ -659,3 +659,9 @@ All third-party software retains its original licence. The following licences ap
 | Microsoft Edge | Proprietary |
 
 See each upstream repository for full licence terms.
+
+## TO DO
+
+- Add KonomiTV support — https://github.com/tsukumijima/KonomiTV
+- Add support for creating transcripts of YouTube videos
+- Improve Ingress support so that you don't need to know the IP address of your host and the NodePort to access a particular service

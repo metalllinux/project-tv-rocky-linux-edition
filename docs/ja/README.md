@@ -463,3 +463,9 @@ Prometheusをデフォルトデータソースとして設定済みのGrafanaを
 | Microsoft Edge | プロプライエタリ |
 
 完全なライセンス条項は各上流リポジトリを参照してください。
+
+## TO DO
+
+- KonomiTVサポートの追加 — https://github.com/tsukumijima/KonomiTV
+- YouTube動画の文字起こし作成機能の追加
+- Ingressサポートの改善（ホストのIPアドレスとNodePortを知らなくても特定のサービスにアクセスできるようにする）
