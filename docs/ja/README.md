@@ -70,6 +70,7 @@ Rocky Linux 10（ホスト）
 │   ├── Grafana（ダッシュボード、ポート3000）
 │   └── CronJob: Jellyfinライブラリ更新（毎時）
 ├── Sanoid（ZFSスナップショット管理）
+├── 静粛時間（バックグラウンドHDDアクティビティ用のsystemdタイマー、オプション）
 ├── KDE Plasma（デスクトップ環境）
 └── px4_drv（TVチューナーカーネルドライバー、DKMS RPM経由）
 ```
@@ -146,7 +147,7 @@ Project TV - Rocky Linux Edition Installer
 
 **[1] フルインストール** — すべてのモジュールを以下の実行順序で実行します。各モジュールの前に実行するかスキップするか確認されます。既に完了したモジュールは再実行するか確認されます。モジュールが失敗した場合、次のモジュールに進むか停止するかを選択できます。
 
-**[2] 特定のモジュールを実行** — 全20モジュール（00〜12、14〜20）を番号順に表示します。モジュール番号を入力して個別に実行します。1桁の入力も可能です（`5`は`05`と同じ）。完了済みモジュールは`(done)`と表示されます。
+**[2] 特定のモジュールを実行** — 全21モジュール（00〜12、14〜21）を番号順に表示します。モジュール番号を入力して個別に実行します。1桁の入力も可能です（`5`は`05`と同じ）。完了済みモジュールは`(done)`と表示されます。
 
 **[3] インストール状況の表示** — 全モジュールの現在の状態を表示：`[OK]`完了、`[!!]`失敗、`[--]`スキップ、`[  ]`未実行。
 
@@ -175,6 +176,8 @@ Project TV - Rocky Linux Edition Installer
 **Kubernetesアプリケーションデプロイ:** 07 → 08 → 09 → 10 → 11
 
 **モニタリング:** 13 → 19 → 20
+
+**静粛時間:** 21
 
 ---
 
@@ -392,6 +395,69 @@ Prometheusをデフォルトデータソースとして設定済みのGrafanaを
 - データディレクトリに正しい所有権（UID 472 / grafana）を設定
 
 **デプロイ後：** `http://<ホストIP>:30300`
+
+### モジュール21: 静粛時間（HDDアクティビティ）
+
+静穏時間窓（デフォルト20:00-07:00）中にハードディスクを起こさせるスケジュールされたバックグラウンドソースを停止し、窓の外では復元するホストレベルのステートマシンをインストールします。TV再生には一切影響しません。
+
+- 静粛時間の有効化を質問します（拒否した場合はモジュールはスキップとマークされます）
+- 開始時刻と終了時刻を質問します（0-23、デフォルト20:00-07:00、終了時刻は排他）。時刻が同じ場合は拒否されます（24時間ずっと静穏になるため）
+- このホストに存在するターゲットのみを検出して設定に書き込みます（存在しないターゲットはティックの失敗原因になるため書き込まれません）
+- ステートマシンを`/usr/local/lib/project-tv/quiet-hours.sh`に、CLIを`/usr/local/bin/project-tv-quiet-hours`に、systemdユニット`project-tv-quiet-hours.{service,timer}`をインストールします
+- `/etc/project-tv/quiet-hours.conf`を書き込み、タイマーを有効化し、現在の状態を適用するためにサービスを一度実行します。再実行時はCLIで設定中のオーバーライドを新しい設定へ引き継ぎます
+
+## 静粛時間
+
+静穏時間窓（デフォルト20:00-07:00、開始時刻は包含、終了時刻は排他）中、ステートマシンはハードディスクを起こさせるスケジュールされたバックグラウンドソースを停止します：
+
+- `jellyfin-library-refresh` CronJob（`suspend`フラグが設定され、実行中のジョブは削除されます）
+- `sanoid.timer` と `plocate-updatedb.timer`（ホストに存在する場合）
+
+窓の外ではこれらは復元されます。systemdタイマーが15分間隔で、および起動時に一度、ステートマシンを実行するため、切り替えの解像度は15分です。ストリーミングパス（Jellyfin再生）には一切触れません。
+
+この機構はソフトに失敗します。エラーが発生した場合はジャーナルに記録し、システムを現在の状態のままにしておき、次のティックで再試行します。適用済みステートは`/var/lib/project-tv/quiet-hours/state`に記録され、遷移の全ステップが成功した場合にのみ進みます。
+
+### 状態の確認
+
+```bash
+sudo project-tv-quiet-hours status
+```
+
+設定された時間窓、有効フラグとオーバーライドフラグ、ターゲット、望まれている状態と適用済み状態、次の切り替えを表示します。
+
+### 時間窓の外で静穏を強制する
+
+```bash
+sudo project-tv-quiet-hours enable    # 今すぐ静穏（時間窓の外でも適用）
+sudo project-tv-quiet-hours disable   # オーバーライドを解除
+```
+
+オーバーライドは`/etc/project-tv/quiet-hours.conf`（`QUIET_OVERRIDE=1`）に保存されるため、`disable`を実行するまで再起動をまたいで保持されます。起動時にはワンショットサービスの実行が、フラグが有効か時間窓がアクティブかのいずれかで静穏を再適用します。変更は即座に適用され、即座にできない場合は次の15分ティックで適用されます。
+
+### 時間窓の変更
+
+`/etc/project-tv/quiet-hours.conf`の`QUIET_START_HOUR`と`QUIET_END_HOUR`を編集します（時刻0-23、終了は排他）。またはインストーラーモジュール21を再実行します。再実行は前回の設定のライブなオーバーライドを引き継ぎます。
+
+### 静粛時間のアンインストール
+
+`project-tv-quiet-hours status`で表示されるターゲットに合わせた復元ステップのみを実行してください（kubectl行のネームスペースは設定ファイルに従い、デフォルトは`project-tv`）：
+
+```bash
+sudo systemctl disable --now project-tv-quiet-hours.timer
+sudo systemctl stop project-tv-quiet-hours.service
+# 停止されていたターゲットを復元（ホストに存在するもののみ）:
+kubectl -n project-tv patch cronjob jellyfin-library-refresh --type merge -p '{"spec":{"suspend":false}}'
+sudo systemctl start sanoid.timer
+sudo systemctl start plocate-updatedb.timer
+sudo systemctl daemon-reload
+sudo rm /etc/systemd/system/project-tv-quiet-hours.service \
+       /etc/systemd/system/project-tv-quiet-hours.timer \
+       /usr/local/lib/project-tv/quiet-hours.sh \
+       /usr/local/bin/project-tv-quiet-hours \
+       /etc/project-tv/quiet-hours.conf
+```
+
+ステートファイル`/var/lib/project-tv/quiet-hours/state`はタイマーが削除されると無害になるため、削除しても構いません。
 
 ## カスタムRocky Linux 10 ISOのビルド
 

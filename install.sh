@@ -42,12 +42,13 @@ MODULE_DESC=(
     [18]="Desktop applications"
     [19]="Prometheus monitoring"
     [20]="Grafana dashboards"
+    [21]="Quiet hours (HDD activity)"
 )
 
 # Module order
 # System setup first (00-06), then desktop/firewall/storage (12,14-18),
-# then K8s apps (07-11), then monitoring (19-20)
-MODULE_ORDER=(00 01 02 03 04 05 06 17 16 15 18 14 12 07 08 09 10 11 19 20)
+# then K8s apps (07-11), then monitoring (19-20), then quiet hours (21)
+MODULE_ORDER=(00 01 02 03 04 05 06 17 16 15 18 14 12 07 08 09 10 11 19 20 21)
 
 # Status tracking file
 STATUS_FILE="$PROJECT_ROOT/logs/.install-status"
@@ -58,6 +59,17 @@ init_status() {
     if [[ ! -f "$STATUS_FILE" ]]; then
         for mod in "${MODULE_ORDER[@]}"; do
             echo "$mod:pending" >> "$STATUS_FILE"
+        done
+    else
+        # In-place upgrade: the file predates modules added later (21 was
+        # added by TASK-0020). Backfill the missing entries so every module
+        # in MODULE_ORDER has a status line; without this, the new module
+        # has no line and every use of it reports nothing.
+        local mod
+        for mod in "${MODULE_ORDER[@]}"; do
+            if ! grep -q "^${mod}:" "$STATUS_FILE"; then
+                echo "$mod:pending" >> "$STATUS_FILE"
+            fi
         done
     fi
 }
@@ -75,7 +87,14 @@ set_module_status() {
 get_module_status() {
     local mod="$1"
     if [[ -f "$STATUS_FILE" ]]; then
-        grep "^${mod}:" "$STATUS_FILE" 2>/dev/null | cut -d: -f2
+        local line
+        line=$(grep "^${mod}:" "$STATUS_FILE" 2>/dev/null | cut -d: -f2) || true
+        # A missing line (hand-edited file, or a pre-upgrade file before
+        # init_status backfilled) is pending, not an error: the old form
+        # returned grep's rc 1 through the pipefail pipeline and set -e
+        # killed the installer at the show_status / show_module_menu /
+        # run_full_install call sites.
+        echo "${line:-pending}"
     else
         echo "pending"
     fi
@@ -100,8 +119,14 @@ run_module() {
     set_module_status "$mod" "running"
 
     if source "$found_file" && run 2>&1; then
-        set_module_status "$mod" "completed"
-        log_success "Module $mod: ${MODULE_DESC[$mod]} — completed"
+        # A module may explicitly mark itself skipped (e.g. the user
+        # declines an optional feature); that mark is preserved.
+        if [[ "$(get_module_status "$mod")" == "skipped" ]]; then
+            log_info "Module $mod: ${MODULE_DESC[$mod]} — skipped by user choice"
+        else
+            set_module_status "$mod" "completed"
+            log_success "Module $mod: ${MODULE_DESC[$mod]} — completed"
+        fi
         return 0
     else
         local rc=$?
@@ -231,7 +256,7 @@ main() {
                 ;;
             2)
                 show_module_menu
-                read -rp "Enter module number (0-20): " mod
+                read -rp "Enter module number (0-21): " mod
                 # Zero-pad single digits (e.g. 2 -> 02)
                 if [[ "$mod" =~ ^[0-9]$ ]]; then
                     mod="0$mod"

@@ -102,6 +102,10 @@ echo "=== Running Installer Validation Tests ==="
 ssh -o StrictHostKeyChecking=no testuser@"$VM_IP" "bash /tmp/test-scripts/test_installer.sh /tmp/project-tv-rocky-edition" | tee "$RESULTS_DIR/installer-tests.tap"
 
 echo ""
+echo "=== Running Quiet Hours Tests ==="
+ssh -o StrictHostKeyChecking=no testuser@"$VM_IP" "bash /tmp/test-scripts/test_quiet_hours.sh /tmp/project-tv-rocky-edition" | tee "$RESULTS_DIR/quiet-hours-tests.tap"
+
+echo ""
 echo "=== Running ZFS Tests ==="
 ssh -o StrictHostKeyChecking=no testuser@"$VM_IP" "bash /tmp/test-scripts/test_zfs.sh" | tee "$RESULTS_DIR/zfs-tests.tap"
 
