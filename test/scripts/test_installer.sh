@@ -116,7 +116,10 @@ fi
 YAML_ERRORS=0
 if python3 -c "import yaml" 2>/dev/null; then
     while IFS= read -r yaml; do
-        if ! python3 -c "import yaml; yaml.safe_load(open('$yaml'))" 2>/dev/null; then
+        # The path goes via argv, never interpolated into the -c string:
+        # a manifest filename containing a single quote plus python would
+        # otherwise execute as the test-runner user.
+        if ! python3 -c "import sys, yaml; list(yaml.safe_load_all(open(sys.argv[1])))" "$yaml" 2>/dev/null; then
             echo "# YAML error in: $yaml"
             YAML_ERRORS=$((YAML_ERRORS + 1))
         fi
@@ -150,3 +153,9 @@ fi
 
 echo ""
 echo "# Results: $PASS passed, $FAIL failed out of $((PASS+FAIL))"
+
+# Exit non-zero when any check failed. Without this, the suite ended with
+# the results echo (rc 0) and any wrapper that checks the exit code saw a
+# green suite; now the ssh|tee pipeline in run_tests.sh under set -e
+# correctly aborts the orchestrator when this suite reports failures.
+[[ "$FAIL" == "0" ]]

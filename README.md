@@ -70,6 +70,7 @@ Rocky Linux 10 (Host)
 │   ├── Grafana (dashboards, port 3000)
 │   └── CronJob: Jellyfin library refresh (hourly)
 ├── Sanoid (ZFS snapshot management)
+├── Quiet hours (systemd timer for background HDD activity, optional)
 ├── KDE Plasma (desktop environment)
 └── px4_drv (TV tuner kernel driver via DKMS RPM)
 ```
@@ -172,7 +173,7 @@ Project TV - Rocky Linux Edition Installer
 
 **[1] Full Installation** — Runs all modules in the execution order shown below. Before each module, you are asked whether to run it or skip it. If a module has already been completed, you are asked whether to re-run it. If a module fails, you can choose to continue with the next module or stop.
 
-**[2] Run a specific module** — Displays a numbered list of all 20 modules (00–12, 14–20) sorted numerically. Enter a module number to run it individually. Single digits are accepted (typing `5` is the same as `05`). Modules that have already been completed are marked `(done)`.
+**[2] Run a specific module** — Displays a numbered list of all 21 modules (00-12, 14-21) sorted numerically. Enter a module number to run it individually. Single digits are accepted (typing `5` is the same as `05`). Modules that have already been completed are marked `(done)`.
 
 **[3] View installation status** — Shows a table of all modules with their current status: `[OK]` completed, `[!!]` failed, `[--]` skipped, or `[  ]` pending.
 
@@ -201,6 +202,8 @@ Modules are executed in the following order during a full installation. Module n
 **Kubernetes application deployments:** 07 → 08 → 09 → 10 → 11
 
 **Monitoring:** 19 → 20
+
+**Quiet hours:** 21
 
 ---
 
@@ -414,6 +417,69 @@ Deploys Grafana on Kubernetes with Prometheus pre-configured as a data source:
 - Sets correct ownership (UID 472 / grafana) on the data directory
 
 **After deployment:** `http://<host-ip>:30300`
+
+### Module 21: Quiet hours (HDD activity)
+
+Installs a host-level state machine that suspends the scheduled background sources that wake the hard drives during a quiet window (default 20:00-07:00) and restores them outside it. Active TV playback is never affected.
+
+- Asks whether to enable quiet hours; declining marks the module skipped
+- Prompts for the start and end hour (0-23, default 20:00-07:00, end exclusive). Equal hours are rejected because they would mean the drives are quiet 24/7
+- Detects the targets present on this host and writes only those to the config, so a missing target can never fail a tick
+- Installs the state machine to `/usr/local/lib/project-tv/quiet-hours.sh`, the CLI to `/usr/local/bin/project-tv-quiet-hours`, and the `project-tv-quiet-hours.{service,timer}` units
+- Writes `/etc/project-tv/quiet-hours.conf`, enables the timer, and runs the service once to apply the current state. A re-run carries a live override set by the CLI over into the new config
+
+## Quiet hours
+
+During the quiet window (default 20:00-07:00, start inclusive, end exclusive) the state machine suspends the scheduled background sources that wake the hard drives:
+
+- the `jellyfin-library-refresh` CronJob, whose `suspend` flag is set and whose in-flight jobs are deleted
+- `sanoid.timer` and `plocate-updatedb.timer`, when present on the host
+
+Outside the window they are restored. A systemd timer runs the state machine every 15 minutes and once at boot, so transitions happen at 15-minute resolution. The streaming path (Jellyfin playback) is never touched.
+
+The mechanism fails soft. On any error the run logs to the journal and leaves the system in its current state, and the next tick retries. The applied state is recorded in `/var/lib/project-tv/quiet-hours/state` and advances only when every step of a transition succeeds.
+
+### Checking the state
+
+```bash
+sudo project-tv-quiet-hours status
+```
+
+This shows the configured window, the enabled and override flags, the targets, the desired and applied states, and the next transition.
+
+### Forcing quiet hours outside the window
+
+```bash
+sudo project-tv-quiet-hours enable    # quiet now, outside the window as well
+sudo project-tv-quiet-hours disable   # remove the override
+```
+
+The override is stored in `/etc/project-tv/quiet-hours.conf` (`QUIET_OVERRIDE=1`), so it persists across reboots until `disable` is run. At boot the one-shot service run re-applies quiet when the flag is on or the window is active. Changes are applied immediately; when that is not possible, the next 15-minute tick picks them up.
+
+### Changing the window
+
+Edit `QUIET_START_HOUR` and `QUIET_END_HOUR` in `/etc/project-tv/quiet-hours.conf` (hours 0-23, end exclusive), or re-run installer module 21. A re-run carries a live override from the previous config.
+
+### Uninstalling quiet hours
+
+Restore only the targets that `project-tv-quiet-hours status` lists for your host (the namespace in the kubectl line comes from the config, default `project-tv`):
+
+```bash
+sudo systemctl disable --now project-tv-quiet-hours.timer
+sudo systemctl stop project-tv-quiet-hours.service
+# Restore the suspended targets (only the ones present on your host):
+kubectl -n project-tv patch cronjob jellyfin-library-refresh --type merge -p '{"spec":{"suspend":false}}'
+sudo systemctl start sanoid.timer
+sudo systemctl start plocate-updatedb.timer
+sudo systemctl daemon-reload
+sudo rm /etc/systemd/system/project-tv-quiet-hours.service \
+       /etc/systemd/system/project-tv-quiet-hours.timer \
+       /usr/local/lib/project-tv/quiet-hours.sh \
+       /usr/local/bin/project-tv-quiet-hours \
+       /etc/project-tv/quiet-hours.conf
+```
+
+The state file `/var/lib/project-tv/quiet-hours/state` is inert once the timer is removed; you may delete it as well.
 
 ## Building the custom Rocky Linux 10 ISO (optional)
 

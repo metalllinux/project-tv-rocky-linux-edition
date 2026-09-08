@@ -1,0 +1,13 @@
+[Unit]
+Description=Project TV quiet hours state transition (HDD background I/O)
+# Wait for the network so the k8s steps have a chance to reach the API
+# server at boot. If the cluster is not ready yet the transition fails
+# soft (logged, system left loud) and the 15-minute timer retries.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# The state machine always exits 0 (fail-soft contract); on error it logs
+# to the journal and the next tick retries.
+ExecStart=/usr/local/lib/project-tv/quiet-hours.sh

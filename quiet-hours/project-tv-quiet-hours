@@ -1,0 +1,259 @@
+#!/bin/bash
+# project-tv-quiet-hours — user-facing CLI for Project TV quiet hours
+#
+# Quiet hours suspend the scheduled background HDD I/O sources named in
+# /etc/project-tv/quiet-hours.conf during the configured window (default
+# 20:00-07:00) and restore them outside it. Active TV playback is never
+# affected: only the scheduled background sources are managed.
+#
+# Commands:
+#   status    show configuration, desired and applied state, next transition
+#   enable    force quiet hours immediately, outside the window as well
+#   disable   remove the forced quiet hours
+#   usage     show this help text
+#
+# The enable/disable override is stored in the config file, so it persists
+# across reboots until 'disable' is run. At boot the one-shot service run
+# re-applies quiet if the flag is on or the window is active.
+#
+# 'usage' works without root; the other commands require root (they write
+# the config and start the service).
+
+set -uo pipefail
+
+SERVICE="project-tv-quiet-hours.service"
+
+usage() {
+    cat << 'EOF'
+Project TV quiet hours
+
+Usage: project-tv-quiet-hours <command>
+
+Commands:
+  status    Show configuration, desired and applied state, next transition
+  enable    Force quiet hours immediately, outside the window as well
+  disable   Remove the forced quiet hours
+  usage     Show this help text
+
+Quiet hours suspend the scheduled background hard disk I/O sources named in
+/etc/project-tv/quiet-hours.conf during the configured window (default
+20:00-07:00) and restore them outside the window. Active TV playback is
+never affected.
+
+The enable/disable override persists across reboots until 'disable' is run.
+Changes are applied immediately; if that is not possible, the state machine
+picks them up at its next 15-minute tick.
+
+Examples:
+  project-tv-quiet-hours status
+  project-tv-quiet-hours enable
+  project-tv-quiet-hours disable
+EOF
+}
+
+require_root() {
+    if [[ "${EUID:-$(id -u)}" -ne 0 ]]; then
+        echo "ERROR: this command must be run as root (sudo $0 $*)" >&2
+        exit 1
+    fi
+}
+
+# Locate the core state-machine script: the installed path first, then the
+# repository layout next to this CLI (used by the test suite).
+core_script_path() {
+    local candidate
+    if [[ -n "${QUIET_HOURS_LIB:-}" ]]; then
+        echo "$QUIET_HOURS_LIB"
+        return 0
+    fi
+    for candidate in \
+        /usr/local/lib/project-tv/quiet-hours.sh \
+        "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/quiet-hours.sh"; do
+        if [[ -f "$candidate" ]]; then
+            echo "$candidate"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# Source the core script for load_config, desired_state, read_state and the
+# timezone helpers. Sourcing is side-effect free (the core runs main only
+# when executed directly).
+load_core() {
+    local core
+    if ! core=$(core_script_path); then
+        echo "ERROR: quiet-hours core script not found (looked in /usr/local/lib/project-tv/quiet-hours.sh and next to this CLI)" >&2
+        exit 1
+    fi
+    # Remember the resolved path so the trigger_now fallback runs exactly
+    # the core this CLI loaded (installed path or repository layout), not
+    # a hardcoded /usr/local path.
+    CORE_PATH="$core"
+    export QUIET_HOURS_CONF="${QUIET_HOURS_CONF:-/etc/project-tv/quiet-hours.conf}"
+    # shellcheck source=/dev/null
+    source "$core"
+}
+
+# Set QUIET_OVERRIDE to 0 or 1 in the config file, atomically. Every other
+# line is preserved verbatim (comments, order, spacing). The config file is
+# data, never executed, so it is rewritten line by line instead of being
+# sourced.
+set_override() {
+    local new_value="$1"
+    local line out="" found=0 tmp
+
+    if [[ ! -f "$QUIET_HOURS_CONF" ]]; then
+        echo "ERROR: config file not found: $QUIET_HOURS_CONF (run installer module 21 first)" >&2
+        return 1
+    fi
+
+    while IFS= read -r line || [[ -n "$line" ]]; do
+        if [[ "$line" =~ ^QUIET_OVERRIDE= ]]; then
+            line="QUIET_OVERRIDE=${new_value}"
+            found=1
+        fi
+        out+="${line}"$'\n'
+    done < "$QUIET_HOURS_CONF"
+    if (( found == 0 )); then
+        out+="QUIET_OVERRIDE=${new_value}"$'\n'
+    fi
+
+    tmp="${QUIET_HOURS_CONF}.tmp.$$"
+    if ! printf '%s' "$out" > "$tmp" 2>/dev/null; then
+        rm -f "$tmp" 2>/dev/null
+        echo "ERROR: cannot write $tmp" >&2
+        return 1
+    fi
+    chmod 0644 "$tmp"
+    if ! mv -f "$tmp" "$QUIET_HOURS_CONF" 2>/dev/null; then
+        rm -f "$tmp" 2>/dev/null
+        echo "ERROR: cannot move $tmp into place" >&2
+        return 1
+    fi
+    return 0
+}
+
+# Apply the change now: start the one-shot service; if the unit is not
+# available, run the core script directly (exactly what the service does).
+# The core script always exits 0 (fail-soft), so a non-zero return here
+# means the change could not be applied at all.
+trigger_now() {
+    if systemctl start "$SERVICE" 2>/dev/null; then
+        echo "Applied immediately."
+        return 0
+    fi
+    # Reuse the path load_core resolved: a CLI run from a repo checkout on
+    # a host with nothing installed must find the core script that sits
+    # next to it, not a hardcoded /usr/local path.
+    if [[ -n "${CORE_PATH:-}" && -f "$CORE_PATH" ]] && "$CORE_PATH"; then
+        echo "Applied immediately (service unit not available; the script was run directly)."
+        return 0
+    fi
+    echo "WARNING: the change could not be applied immediately; it will be applied at the next timer tick (15 minutes)." >&2
+    return 1
+}
+
+# Echo a hint of when the desired state changes next, at hour granularity
+# (the timer's resolution). Epoch-based candidate stepping keeps the hint
+# sane across DST transitions. "none" when the state is constant.
+next_transition() {
+    local now="$1"
+    local cur_state offset cand hour target
+
+    cur_state=$(desired_state_at "$now")
+
+    for offset in $(seq 1 48); do
+        cand=$(( now + offset * 3600 ))
+        hour=$((10#$(local_tz_hour "$cand")))
+        target="loud"
+        if (( QUIET_ENABLED == 1 )) && { (( QUIET_OVERRIDE == 1 )) || hour_in_window "$hour"; }; then
+            target="quiet"
+        fi
+        if [[ "$target" != "$cur_state" ]]; then
+            echo "$(local_tz_date "$cand" '%Y-%m-%d %H:%M') (becomes $target)"
+            return 0
+        fi
+    done
+    echo "none (state is constant)"
+}
+
+cmd_status() {
+    load_core
+
+    if ! load_config; then
+        echo "ERROR: could not load $QUIET_HOURS_CONF (the system is left in its current state)" >&2
+        exit 1
+    fi
+
+    local desired applied now
+    desired=$(desired_state)
+    applied=$(read_state)
+    now=$(date +%s)
+
+    echo "Quiet hours status"
+    echo "=================="
+    echo "Config:         $QUIET_HOURS_CONF"
+    echo "Window:         $(printf '%02d' "$QUIET_START_HOUR"):00 - $(printf '%02d' "$QUIET_END_HOUR"):00 (start inclusive, end exclusive)"
+    echo "Enabled:        $QUIET_ENABLED"
+    if [[ "$QUIET_OVERRIDE" == "1" ]]; then
+        echo "Override:       on (forced quiet, persists until 'disable')"
+    else
+        echo "Override:       off"
+    fi
+    echo "Targets:        CronJobs [${QUIET_K8S_CRONJOBS:-none}]  units [${QUIET_SYSTEMD_UNITS:-none}]"
+    echo "Namespace:      $QUIET_HOURS_NAMESPACE"
+    echo "Local time:     $(date '+%Y-%m-%d %H:%M:%S %Z')"
+    echo "Desired state:  $desired"
+    echo "Applied state:  $applied"
+    if [[ "$desired" == "$applied" ]]; then
+        echo "In sync."
+    else
+        echo "Out of sync: the next tick (within 15 minutes) will reconcile."
+    fi
+    echo "Next transition: $(next_transition "$now")"
+}
+
+cmd_enable() {
+    load_core
+
+    if ! set_override 1; then
+        exit 1
+    fi
+    echo "Quiet hours override enabled (QUIET_OVERRIDE=1 in $QUIET_HOURS_CONF)."
+    trigger_now
+}
+
+cmd_disable() {
+    load_core
+
+    if ! set_override 0; then
+        exit 1
+    fi
+    echo "Quiet hours override disabled (QUIET_OVERRIDE=0 in $QUIET_HOURS_CONF)."
+    trigger_now
+}
+
+case "${1:-}" in
+    ""|usage|help|-h|--help)
+        usage
+        ;;
+    status)
+        require_root
+        cmd_status
+        ;;
+    enable)
+        require_root
+        cmd_enable
+        ;;
+    disable)
+        require_root
+        cmd_disable
+        ;;
+    *)
+        echo "Unknown command: $1" >&2
+        echo "" >&2
+        usage >&2
+        exit 1
+        ;;
+esac
